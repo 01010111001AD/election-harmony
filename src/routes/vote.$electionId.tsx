@@ -95,11 +95,21 @@ function VotePage() {
       selections = { vote: selected[0] };
     }
     setSubmitting(true);
-    const { error } = await supabase.from("ballots").insert({
-      election_id: electionId, voter_roll_id: voterRollId, selections,
-    });
-    setSubmitting(false);
-    if (error) return toast.error(error.message);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { error } = await supabase.from("ballots").insert({
+        election_id: electionId, voter_roll_id: voterRollId, selections,
+      });
+      setSubmitting(false);
+      if (error) return toast.error(error.message);
+    } else {
+      const token = sessionStorage.getItem("electa.token");
+      const { data, error } = await supabase.functions.invoke("cast-ballot-token", {
+        body: { token, election_id: electionId, selections },
+      });
+      setSubmitting(false);
+      if (error || (data as any)?.error) return toast.error((data as any)?.error || error?.message || "Failed");
+    }
     setConfirmed(true);
   };
 
