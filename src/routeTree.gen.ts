@@ -16,7 +16,12 @@ import { Route as MethodsRouteImport } from './routes/methods'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VoteElectionIdRouteImport } from './routes/vote.$electionId'
+import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
+import { Route as AuthenticatedAppElectionsElectionIdRouteImport } from './routes/_authenticated/app.elections.$electionId'
+import { Route as AuthenticatedAppElectionsElectionIdResultsRouteImport } from './routes/_authenticated/app.elections.$electionId.results'
 
 const UseCasesRoute = UseCasesRouteImport.update({
   id: '/use-cases',
@@ -53,11 +58,38 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VoteElectionIdRoute = VoteElectionIdRouteImport.update({
+  id: '/vote/$electionId',
+  path: '/vote/$electionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAppDashboardRoute =
+  AuthenticatedAppDashboardRouteImport.update({
+    id: '/app/dashboard',
+    path: '/app/dashboard',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppElectionsElectionIdRoute =
+  AuthenticatedAppElectionsElectionIdRouteImport.update({
+    id: '/app/elections/$electionId',
+    path: '/app/elections/$electionId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppElectionsElectionIdResultsRoute =
+  AuthenticatedAppElectionsElectionIdResultsRouteImport.update({
+    id: '/results',
+    path: '/results',
+    getParentRoute: () => AuthenticatedAppElectionsElectionIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +100,10 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/vote/$electionId': typeof VoteElectionIdRoute
+  '/app/dashboard': typeof AuthenticatedAppDashboardRoute
+  '/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
+  '/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,10 +114,15 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/vote/$electionId': typeof VoteElectionIdRoute
+  '/app/dashboard': typeof AuthenticatedAppDashboardRoute
+  '/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
+  '/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/contact': typeof ContactRoute
   '/features': typeof FeaturesRoute
   '/login': typeof LoginRoute
@@ -89,6 +130,10 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/vote/$electionId': typeof VoteElectionIdRoute
+  '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
+  '/_authenticated/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
+  '/_authenticated/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +146,10 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/vote/$electionId'
+    | '/app/dashboard'
+    | '/app/elections/$electionId'
+    | '/app/elections/$electionId/results'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,9 +160,14 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/vote/$electionId'
+    | '/app/dashboard'
+    | '/app/elections/$electionId'
+    | '/app/elections/$electionId/results'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/contact'
     | '/features'
     | '/login'
@@ -121,10 +175,15 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/vote/$electionId'
+    | '/_authenticated/app/dashboard'
+    | '/_authenticated/app/elections/$electionId'
+    | '/_authenticated/app/elections/$electionId/results'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   ContactRoute: typeof ContactRoute
   FeaturesRoute: typeof FeaturesRoute
   LoginRoute: typeof LoginRoute
@@ -132,6 +191,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   SecurityRoute: typeof SecurityRoute
   UseCasesRoute: typeof UseCasesRoute
+  VoteElectionIdRoute: typeof VoteElectionIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -192,11 +259,70 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vote/$electionId': {
+      id: '/vote/$electionId'
+      path: '/vote/$electionId'
+      fullPath: '/vote/$electionId'
+      preLoaderRoute: typeof VoteElectionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/app/dashboard': {
+      id: '/_authenticated/app/dashboard'
+      path: '/app/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AuthenticatedAppDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/elections/$electionId': {
+      id: '/_authenticated/app/elections/$electionId'
+      path: '/app/elections/$electionId'
+      fullPath: '/app/elections/$electionId'
+      preLoaderRoute: typeof AuthenticatedAppElectionsElectionIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/elections/$electionId/results': {
+      id: '/_authenticated/app/elections/$electionId/results'
+      path: '/results'
+      fullPath: '/app/elections/$electionId/results'
+      preLoaderRoute: typeof AuthenticatedAppElectionsElectionIdResultsRouteImport
+      parentRoute: typeof AuthenticatedAppElectionsElectionIdRoute
+    }
   }
 }
 
+interface AuthenticatedAppElectionsElectionIdRouteChildren {
+  AuthenticatedAppElectionsElectionIdResultsRoute: typeof AuthenticatedAppElectionsElectionIdResultsRoute
+}
+
+const AuthenticatedAppElectionsElectionIdRouteChildren: AuthenticatedAppElectionsElectionIdRouteChildren =
+  {
+    AuthenticatedAppElectionsElectionIdResultsRoute:
+      AuthenticatedAppElectionsElectionIdResultsRoute,
+  }
+
+const AuthenticatedAppElectionsElectionIdRouteWithChildren =
+  AuthenticatedAppElectionsElectionIdRoute._addFileChildren(
+    AuthenticatedAppElectionsElectionIdRouteChildren,
+  )
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
+  AuthenticatedAppElectionsElectionIdRoute: typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
+  AuthenticatedAppElectionsElectionIdRoute:
+    AuthenticatedAppElectionsElectionIdRouteWithChildren,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   ContactRoute: ContactRoute,
   FeaturesRoute: FeaturesRoute,
   LoginRoute: LoginRoute,
@@ -204,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   SecurityRoute: SecurityRoute,
   UseCasesRoute: UseCasesRoute,
+  VoteElectionIdRoute: VoteElectionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
