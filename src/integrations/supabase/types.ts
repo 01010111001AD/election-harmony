@@ -14,16 +14,277 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_log: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          details: Json | null
+          election_id: string | null
+          event: string
+          id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          election_id?: string | null
+          event: string
+          id?: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          election_id?: string | null
+          event?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ballots: {
+        Row: {
+          cast_at: string
+          election_id: string
+          id: string
+          selections: Json
+          voter_roll_id: string
+        }
+        Insert: {
+          cast_at?: string
+          election_id: string
+          id?: string
+          selections: Json
+          voter_roll_id: string
+        }
+        Update: {
+          cast_at?: string
+          election_id?: string
+          id?: string
+          selections?: Json
+          voter_roll_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ballots_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ballots_voter_roll_id_fkey"
+            columns: ["voter_roll_id"]
+            isOneToOne: false
+            referencedRelation: "voter_roll"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidates: {
+        Row: {
+          created_at: string
+          display_order: number
+          election_id: string
+          id: string
+          name: string
+          photo_url: string | null
+          statement: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          election_id: string
+          id?: string
+          name: string
+          photo_url?: string | null
+          statement?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          election_id?: string
+          id?: string
+          name?: string
+          photo_url?: string | null
+          statement?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elections: {
+        Row: {
+          allow_abstain: boolean
+          anonymous: boolean
+          closes_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          max_selections: number
+          method: Database["public"]["Enums"]["voting_method"]
+          opens_at: string | null
+          owner_id: string
+          status: Database["public"]["Enums"]["election_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          allow_abstain?: boolean
+          anonymous?: boolean
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_selections?: number
+          method?: Database["public"]["Enums"]["voting_method"]
+          opens_at?: string | null
+          owner_id: string
+          status?: Database["public"]["Enums"]["election_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          allow_abstain?: boolean
+          anonymous?: boolean
+          closes_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_selections?: number
+          method?: Database["public"]["Enums"]["voting_method"]
+          opens_at?: string | null
+          owner_id?: string
+          status?: Database["public"]["Enums"]["election_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          organization: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          organization?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          organization?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      voter_roll: {
+        Row: {
+          created_at: string
+          election_id: string
+          email: string | null
+          has_voted: boolean
+          id: string
+          user_id: string | null
+          voting_token: string | null
+        }
+        Insert: {
+          created_at?: string
+          election_id: string
+          email?: string | null
+          has_voted?: boolean
+          id?: string
+          user_id?: string | null
+          voting_token?: string | null
+        }
+        Update: {
+          created_at?: string
+          election_id?: string
+          email?: string | null
+          has_voted?: boolean
+          id?: string
+          user_id?: string | null
+          voting_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voter_roll_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_enrolled: {
+        Args: { _election_id: string; _user_id: string }
+        Returns: boolean
+      }
+      owns_election: {
+        Args: { _election_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "platform_admin" | "election_admin" | "voter" | "observer"
+      election_status: "draft" | "scheduled" | "open" | "closed" | "certified"
+      voting_method: "fptp" | "approval" | "ranked" | "yes_no"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +411,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["platform_admin", "election_admin", "voter", "observer"],
+      election_status: ["draft", "scheduled", "open", "closed", "certified"],
+      voting_method: ["fptp", "approval", "ranked", "yes_no"],
+    },
   },
 } as const
