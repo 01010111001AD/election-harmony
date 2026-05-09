@@ -1,1 +1,4 @@
 project_id = "pfzihbmdaksiiduwympn"
+
+[functions.cast-ballot-token]
+verify_jwt = false
