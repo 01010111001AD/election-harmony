@@ -196,7 +196,20 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
               {roll.map((r) => (
                 <tr key={r.id} className="border-b border-border/50">
                   <td className="px-4 py-3">{r.email || r.user_id}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{r.voting_token || "—"}</td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {r.voting_token ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                        onClick={() => {
+                          navigator.clipboard.writeText(r.voting_token!);
+                          toast.success("Token copied");
+                        }}
+                      >
+                        {r.voting_token} <Copy className="h-3 w-3" />
+                      </button>
+                    ) : "—"}
+                  </td>
                   <td className="px-4 py-3">{r.has_voted ? <Badge>voted</Badge> : <Badge variant="outline">pending</Badge>}</td>
                   <td className="px-4 py-3 text-right">
                     <Button size="icon" variant="ghost" onClick={() => remove(r.id)} disabled={r.has_voted}><Trash2 className="h-4 w-4" /></Button>
