@@ -137,6 +137,7 @@ export type Database = {
           max_selections: number
           method: Database["public"]["Enums"]["voting_method"]
           opens_at: string | null
+          organization_id: string | null
           owner_id: string
           status: Database["public"]["Enums"]["election_status"]
           title: string
@@ -152,6 +153,7 @@ export type Database = {
           max_selections?: number
           method?: Database["public"]["Enums"]["voting_method"]
           opens_at?: string | null
+          organization_id?: string | null
           owner_id: string
           status?: Database["public"]["Enums"]["election_status"]
           title: string
@@ -167,12 +169,103 @@ export type Database = {
           max_selections?: number
           method?: Database["public"]["Enums"]["voting_method"]
           opens_at?: string | null
+          organization_id?: string | null
           owner_id?: string
           status?: Database["public"]["Enums"]["election_status"]
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "elections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_member_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_member_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_member_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          accent_color: string | null
+          brand_color: string | null
+          created_at: string
+          created_by: string
+          id: string
+          logo_url: string | null
+          name: string
+          parent_id: string | null
+          slug: string
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          brand_color?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          parent_id?: string | null
+          slug: string
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          brand_color?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -276,6 +369,14 @@ export type Database = {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
       }
+      is_org_admin: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       owns_election: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
@@ -284,6 +385,7 @@ export type Database = {
     Enums: {
       app_role: "platform_admin" | "election_admin" | "voter" | "observer"
       election_status: "draft" | "scheduled" | "open" | "closed" | "certified"
+      org_member_role: "owner" | "admin" | "member" | "observer"
       voting_method: "fptp" | "approval" | "ranked" | "yes_no"
     }
     CompositeTypes: {
@@ -414,6 +516,7 @@ export const Constants = {
     Enums: {
       app_role: ["platform_admin", "election_admin", "voter", "observer"],
       election_status: ["draft", "scheduled", "open", "closed", "certified"],
+      org_member_role: ["owner", "admin", "member", "observer"],
       voting_method: ["fptp", "approval", "ranked", "yes_no"],
     },
   },
