@@ -36,16 +36,19 @@ function ManageElection() {
   const [election, setElection] = useState<Election | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [roll, setRoll] = useState<RollEntry[]>([]);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
 
   const load = async () => {
-    const [e, c, r] = await Promise.all([
+    const [e, c, r, a] = await Promise.all([
       supabase.from("elections").select("*").eq("id", electionId).single(),
       supabase.from("candidates").select("*").eq("election_id", electionId).order("display_order"),
       supabase.from("voter_roll").select("*").eq("election_id", electionId).order("created_at"),
+      supabase.from("audit_log").select("*").eq("election_id", electionId).order("created_at", { ascending: false }).limit(100),
     ]);
     if (e.data) setElection(e.data as Election);
     setCandidates((c.data ?? []) as Candidate[]);
     setRoll((r.data ?? []) as RollEntry[]);
+    setAudit((a.data ?? []) as AuditEntry[]);
   };
   useEffect(() => { load(); }, [electionId]);
 
@@ -55,6 +58,7 @@ function ManageElection() {
     if (status === "closed") patch.closes_at = new Date().toISOString();
     const { error } = await supabase.from("elections").update(patch).eq("id", electionId);
     if (error) return toast.error(error.message);
+    await supabase.from("audit_log").insert({ election_id: electionId, event: `status_${status}` });
     toast.success(`Status: ${status}`);
     load();
   };
@@ -87,6 +91,8 @@ function ManageElection() {
         <TabsList>
           <TabsTrigger value="candidates">Candidates</TabsTrigger>
           <TabsTrigger value="roll">Voter Roll</TabsTrigger>
+          <TabsTrigger value="settings"><Calendar className="h-4 w-4" />Schedule</TabsTrigger>
+          <TabsTrigger value="audit"><ScrollText className="h-4 w-4" />Audit Trail</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
@@ -94,6 +100,12 @@ function ManageElection() {
         </TabsContent>
         <TabsContent value="roll" className="space-y-4">
           <RollPanel electionId={electionId} roll={roll} reload={load} />
+        </TabsContent>
+        <TabsContent value="settings" className="space-y-4">
+          <SchedulePanel election={election} reload={load} />
+        </TabsContent>
+        <TabsContent value="audit" className="space-y-4">
+          <AuditPanel entries={audit} />
         </TabsContent>
       </Tabs>
     </div>
