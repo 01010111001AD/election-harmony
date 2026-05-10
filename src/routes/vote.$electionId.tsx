@@ -14,7 +14,8 @@ export const Route = createFileRoute("/vote/$electionId")({
   head: () => ({ meta: [{ title: "Cast your vote — ElectaCore" }] }),
 });
 
-type Election = { id: string; title: string; description: string | null; method: string; status: string; max_selections: number };
+type Election = { id: string; title: string; description: string | null; method: string; status: string; max_selections: number; organization_id: string | null };
+type Brand = { name: string; logo_url: string | null; brand_color: string; accent_color: string; tagline: string | null };
 type Candidate = { id: string; name: string; statement: string | null };
 
 function VotePage() {
