@@ -19,7 +19,9 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VoteElectionIdRouteImport } from './routes/vote.$electionId'
+import { Route as AuthenticatedAppOrganizationsRouteImport } from './routes/_authenticated/app.organizations'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
+import { Route as AuthenticatedAppOrganizationsOrgIdRouteImport } from './routes/_authenticated/app.organizations.$orgId'
 import { Route as AuthenticatedAppElectionsElectionIdRouteImport } from './routes/_authenticated/app.elections.$electionId'
 import { Route as AuthenticatedAppElectionsElectionIdResultsRouteImport } from './routes/_authenticated/app.elections.$electionId.results'
 
@@ -72,11 +74,23 @@ const VoteElectionIdRoute = VoteElectionIdRouteImport.update({
   path: '/vote/$electionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppOrganizationsRoute =
+  AuthenticatedAppOrganizationsRouteImport.update({
+    id: '/app/organizations',
+    path: '/app/organizations',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAppDashboardRoute =
   AuthenticatedAppDashboardRouteImport.update({
     id: '/app/dashboard',
     path: '/app/dashboard',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppOrganizationsOrgIdRoute =
+  AuthenticatedAppOrganizationsOrgIdRouteImport.update({
+    id: '/$orgId',
+    path: '/$orgId',
+    getParentRoute: () => AuthenticatedAppOrganizationsRoute,
   } as any)
 const AuthenticatedAppElectionsElectionIdRoute =
   AuthenticatedAppElectionsElectionIdRouteImport.update({
@@ -102,7 +116,9 @@ export interface FileRoutesByFullPath {
   '/use-cases': typeof UseCasesRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
+  '/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
   '/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
+  '/app/organizations/$orgId': typeof AuthenticatedAppOrganizationsOrgIdRoute
   '/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
 }
 export interface FileRoutesByTo {
@@ -116,7 +132,9 @@ export interface FileRoutesByTo {
   '/use-cases': typeof UseCasesRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
+  '/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
   '/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
+  '/app/organizations/$orgId': typeof AuthenticatedAppOrganizationsOrgIdRoute
   '/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
 }
 export interface FileRoutesById {
@@ -132,7 +150,9 @@ export interface FileRoutesById {
   '/use-cases': typeof UseCasesRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
+  '/_authenticated/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
   '/_authenticated/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
+  '/_authenticated/app/organizations/$orgId': typeof AuthenticatedAppOrganizationsOrgIdRoute
   '/_authenticated/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
 }
 export interface FileRouteTypes {
@@ -148,7 +168,9 @@ export interface FileRouteTypes {
     | '/use-cases'
     | '/vote/$electionId'
     | '/app/dashboard'
+    | '/app/organizations'
     | '/app/elections/$electionId'
+    | '/app/organizations/$orgId'
     | '/app/elections/$electionId/results'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -162,7 +184,9 @@ export interface FileRouteTypes {
     | '/use-cases'
     | '/vote/$electionId'
     | '/app/dashboard'
+    | '/app/organizations'
     | '/app/elections/$electionId'
+    | '/app/organizations/$orgId'
     | '/app/elections/$electionId/results'
   id:
     | '__root__'
@@ -177,7 +201,9 @@ export interface FileRouteTypes {
     | '/use-cases'
     | '/vote/$electionId'
     | '/_authenticated/app/dashboard'
+    | '/_authenticated/app/organizations'
     | '/_authenticated/app/elections/$electionId'
+    | '/_authenticated/app/organizations/$orgId'
     | '/_authenticated/app/elections/$electionId/results'
   fileRoutesById: FileRoutesById
 }
@@ -266,12 +292,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VoteElectionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/app/organizations': {
+      id: '/_authenticated/app/organizations'
+      path: '/app/organizations'
+      fullPath: '/app/organizations'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/dashboard': {
       id: '/_authenticated/app/dashboard'
       path: '/app/dashboard'
       fullPath: '/app/dashboard'
       preLoaderRoute: typeof AuthenticatedAppDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/organizations/$orgId': {
+      id: '/_authenticated/app/organizations/$orgId'
+      path: '/$orgId'
+      fullPath: '/app/organizations/$orgId'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationsOrgIdRouteImport
+      parentRoute: typeof AuthenticatedAppOrganizationsRoute
     }
     '/_authenticated/app/elections/$electionId': {
       id: '/_authenticated/app/elections/$electionId'
@@ -290,6 +330,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAppOrganizationsRouteChildren {
+  AuthenticatedAppOrganizationsOrgIdRoute: typeof AuthenticatedAppOrganizationsOrgIdRoute
+}
+
+const AuthenticatedAppOrganizationsRouteChildren: AuthenticatedAppOrganizationsRouteChildren =
+  {
+    AuthenticatedAppOrganizationsOrgIdRoute:
+      AuthenticatedAppOrganizationsOrgIdRoute,
+  }
+
+const AuthenticatedAppOrganizationsRouteWithChildren =
+  AuthenticatedAppOrganizationsRoute._addFileChildren(
+    AuthenticatedAppOrganizationsRouteChildren,
+  )
+
 interface AuthenticatedAppElectionsElectionIdRouteChildren {
   AuthenticatedAppElectionsElectionIdResultsRoute: typeof AuthenticatedAppElectionsElectionIdResultsRoute
 }
@@ -307,11 +362,14 @@ const AuthenticatedAppElectionsElectionIdRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
+  AuthenticatedAppOrganizationsRoute: typeof AuthenticatedAppOrganizationsRouteWithChildren
   AuthenticatedAppElectionsElectionIdRoute: typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
+  AuthenticatedAppOrganizationsRoute:
+    AuthenticatedAppOrganizationsRouteWithChildren,
   AuthenticatedAppElectionsElectionIdRoute:
     AuthenticatedAppElectionsElectionIdRouteWithChildren,
 }

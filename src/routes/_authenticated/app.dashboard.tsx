@@ -152,7 +152,20 @@ function CreateElectionDialog({ onCreated }: { onCreated: () => void }) {
   const [description, setDescription] = useState("");
   const [method, setMethod] = useState<Election["method"]>("fptp");
   const [maxSel, setMaxSel] = useState(1);
+  const [orgId, setOrgId] = useState<string>("none");
+  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("organization_members")
+      .select("organizations(id,name)")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        setOrgs(((data ?? []).map((r: any) => r.organizations).filter(Boolean)) as any);
+      });
+  }, [user]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +173,7 @@ function CreateElectionDialog({ onCreated }: { onCreated: () => void }) {
     setSubmitting(true);
     const { error } = await supabase.from("elections").insert({
       title, description, method, max_selections: maxSel, owner_id: user.id,
+      organization_id: orgId === "none" ? null : orgId,
     });
     setSubmitting(false);
     if (error) return toast.error(error.message);
@@ -173,6 +187,16 @@ function CreateElectionDialog({ onCreated }: { onCreated: () => void }) {
       <form onSubmit={submit} className="space-y-4">
         <div><Label htmlFor="t">Title</Label><Input id="t" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
         <div><Label htmlFor="d">Description</Label><Textarea id="d" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
+        <div>
+          <Label>Organization (tenant)</Label>
+          <Select value={orgId} onValueChange={setOrgId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— Personal / unaffiliated —</SelectItem>
+              {orgs.map((o) => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Voting method</Label>

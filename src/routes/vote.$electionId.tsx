@@ -14,7 +14,8 @@ export const Route = createFileRoute("/vote/$electionId")({
   head: () => ({ meta: [{ title: "Cast your vote — ElectaCore" }] }),
 });
 
-type Election = { id: string; title: string; description: string | null; method: string; status: string; max_selections: number };
+type Election = { id: string; title: string; description: string | null; method: string; status: string; max_selections: number; organization_id: string | null };
+type Brand = { name: string; logo_url: string | null; brand_color: string; accent_color: string; tagline: string | null };
 type Candidate = { id: string; name: string; statement: string | null };
 
 function VotePage() {
@@ -22,6 +23,7 @@ function VotePage() {
   const navigate = useNavigate();
   const [election, setElection] = useState<Election | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [brand, setBrand] = useState<Brand | null>(null);
   const [voterRollId, setVoterRollId] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -37,6 +39,10 @@ function VotePage() {
       const { data: cands } = await supabase.from("candidates").select("id, name, statement").eq("election_id", electionId).order("display_order");
       setElection(el as Election | null);
       setCandidates((cands ?? []) as Candidate[]);
+      if ((el as any)?.organization_id) {
+        const { data: org } = await supabase.from("organizations").select("name,logo_url,brand_color,accent_color,tagline").eq("id", (el as any).organization_id).maybeSingle();
+        if (org) setBrand(org as Brand);
+      }
 
       let roll: any = null;
       if (user) {
@@ -115,11 +121,15 @@ function VotePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-navy text-navy-foreground">
+      <header className="border-b border-border text-white" style={brand ? { background: `linear-gradient(135deg, ${brand.brand_color}, ${brand.accent_color})` } : { background: "hsl(var(--navy))" }}>
         <div className="container mx-auto flex max-w-3xl items-center gap-3 px-6 py-5">
-          <ShieldCheck className="h-6 w-6 text-gold" />
+          {brand?.logo_url ? (
+            <img src={brand.logo_url} alt="" className="h-10 w-10 rounded object-cover" />
+          ) : (
+            <ShieldCheck className="h-6 w-6 text-gold" />
+          )}
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-gold">Secure Ballot</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] opacity-80">{brand ? brand.name : "Secure Ballot"}</p>
             <h1 className="font-serif text-xl font-semibold">{election.title}</h1>
           </div>
         </div>

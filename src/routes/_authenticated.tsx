@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-rout
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteFooter } from "@/components/site-footer";
-import { ShieldCheck, LayoutDashboard, LogOut } from "lucide-react";
+import { ShieldCheck, LayoutDashboard, LogOut, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -37,6 +37,9 @@ function AuthedLayout() {
           <nav className="hidden items-center gap-6 md:flex">
             <Link to="/app/dashboard" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground" activeProps={{ className: "text-foreground" }}>
               <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </Link>
+            <Link to="/app/organizations" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground" activeProps={{ className: "text-foreground" }}>
+              <Building2 className="h-4 w-4" /> Organizations
             </Link>
           </nav>
           <div className="flex items-center gap-3">
