@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Trash2, BarChart3, ExternalLink } from "lucide-react";
+import { Trash2, BarChart3, ExternalLink, Copy, Calendar, ScrollText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/elections/$electionId")({
   component: ManageElection,
