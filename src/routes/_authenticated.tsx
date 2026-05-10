@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-rout
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteFooter } from "@/components/site-footer";
-import { ShieldCheck, LayoutDashboard, LogOut } from "lucide-react";
+import { ShieldCheck, LayoutDashboard, LogOut, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated")({
