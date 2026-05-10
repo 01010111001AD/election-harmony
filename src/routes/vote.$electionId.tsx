@@ -121,11 +121,15 @@ function VotePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-navy text-navy-foreground">
+      <header className="border-b border-border text-white" style={brand ? { background: `linear-gradient(135deg, ${brand.brand_color}, ${brand.accent_color})` } : { background: "hsl(var(--navy))" }}>
         <div className="container mx-auto flex max-w-3xl items-center gap-3 px-6 py-5">
-          <ShieldCheck className="h-6 w-6 text-gold" />
+          {brand?.logo_url ? (
+            <img src={brand.logo_url} alt="" className="h-10 w-10 rounded object-cover" />
+          ) : (
+            <ShieldCheck className="h-6 w-6 text-gold" />
+          )}
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-gold">Secure Ballot</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] opacity-80">{brand ? brand.name : "Secure Ballot"}</p>
             <h1 className="font-serif text-xl font-semibold">{election.title}</h1>
           </div>
         </div>
