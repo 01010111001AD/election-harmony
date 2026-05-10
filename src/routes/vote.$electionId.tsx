@@ -23,6 +23,7 @@ function VotePage() {
   const navigate = useNavigate();
   const [election, setElection] = useState<Election | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [brand, setBrand] = useState<Brand | null>(null);
   const [voterRollId, setVoterRollId] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
