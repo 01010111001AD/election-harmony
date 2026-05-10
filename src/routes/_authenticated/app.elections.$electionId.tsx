@@ -225,3 +225,84 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
     </>
   );
 }
+
+function SchedulePanel({ election, reload }: { election: Election; reload: () => void }) {
+  const toLocal = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 16) : "");
+  const [opensAt, setOpensAt] = useState(toLocal(election.opens_at));
+  const [closesAt, setClosesAt] = useState(toLocal(election.closes_at));
+  const [anonymous, setAnonymous] = useState(election.anonymous);
+  const [allowAbstain, setAllowAbstain] = useState(election.allow_abstain);
+  const [saving, setSaving] = useState(false);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const { error } = await supabase.from("elections").update({
+      opens_at: opensAt ? new Date(opensAt).toISOString() : null,
+      closes_at: closesAt ? new Date(closesAt).toISOString() : null,
+      anonymous, allow_abstain: allowAbstain,
+    }).eq("id", election.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    await supabase.from("audit_log").insert({ election_id: election.id, event: "schedule_updated" });
+    toast.success("Schedule saved");
+    reload();
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="font-serif">Schedule & integrity</CardTitle></CardHeader>
+      <CardContent>
+        <form onSubmit={save} className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="opens">Opens at</Label>
+            <Input id="opens" type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="closes">Closes at</Label>
+            <Input id="closes" type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+            Anonymous ballots (no voter identity stored on ballot)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={allowAbstain} onChange={(e) => setAllowAbstain(e.target.checked)} />
+            Allow abstain
+          </label>
+          <div className="md:col-span-2">
+            <Button type="submit" variant="institutional" disabled={saving}>{saving ? "Saving…" : "Save schedule"}</Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AuditPanel({ entries }: { entries: AuditEntry[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif">Immutable audit trail</CardTitle>
+        <p className="text-xs text-muted-foreground">All material lifecycle events and ballot casts are recorded here for observers and auditors.</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr><th className="px-4 py-3">When</th><th className="px-4 py-3">Event</th><th className="px-4 py-3">Actor</th></tr>
+          </thead>
+          <tbody>
+            {entries.map((a) => (
+              <tr key={a.id} className="border-b border-border/50">
+                <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString()}</td>
+                <td className="px-4 py-3 font-mono text-xs">{a.event}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{a.actor_id ? a.actor_id.slice(0, 8) + "…" : "system"}</td>
+              </tr>
+            ))}
+            {entries.length === 0 && <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No events recorded yet.</td></tr>}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
