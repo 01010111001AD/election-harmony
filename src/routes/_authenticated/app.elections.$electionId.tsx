@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Trash2, BarChart3, ExternalLink } from "lucide-react";
+import { Trash2, BarChart3, ExternalLink, Copy, Calendar, ScrollText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/app/elections/$electionId")({
   component: ManageElection,
@@ -19,9 +19,11 @@ export const Route = createFileRoute("/_authenticated/app/elections/$electionId"
 type Election = {
   id: string; title: string; description: string | null;
   method: string; status: string; max_selections: number; owner_id: string;
+  opens_at: string | null; closes_at: string | null; anonymous: boolean; allow_abstain: boolean;
 };
 type Candidate = { id: string; name: string; statement: string | null; display_order: number };
 type RollEntry = { id: string; email: string | null; voting_token: string | null; has_voted: boolean; user_id: string | null };
+type AuditEntry = { id: string; event: string; actor_id: string | null; created_at: string; details: any };
 
 function genToken() {
   const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -34,16 +36,19 @@ function ManageElection() {
   const [election, setElection] = useState<Election | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [roll, setRoll] = useState<RollEntry[]>([]);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
 
   const load = async () => {
-    const [e, c, r] = await Promise.all([
+    const [e, c, r, a] = await Promise.all([
       supabase.from("elections").select("*").eq("id", electionId).single(),
       supabase.from("candidates").select("*").eq("election_id", electionId).order("display_order"),
       supabase.from("voter_roll").select("*").eq("election_id", electionId).order("created_at"),
+      supabase.from("audit_log").select("*").eq("election_id", electionId).order("created_at", { ascending: false }).limit(100),
     ]);
     if (e.data) setElection(e.data as Election);
     setCandidates((c.data ?? []) as Candidate[]);
     setRoll((r.data ?? []) as RollEntry[]);
+    setAudit((a.data ?? []) as AuditEntry[]);
   };
   useEffect(() => { load(); }, [electionId]);
 
@@ -53,6 +58,7 @@ function ManageElection() {
     if (status === "closed") patch.closes_at = new Date().toISOString();
     const { error } = await supabase.from("elections").update(patch).eq("id", electionId);
     if (error) return toast.error(error.message);
+    await supabase.from("audit_log").insert({ election_id: electionId, event: `status_${status}` });
     toast.success(`Status: ${status}`);
     load();
   };
@@ -85,6 +91,8 @@ function ManageElection() {
         <TabsList>
           <TabsTrigger value="candidates">Candidates</TabsTrigger>
           <TabsTrigger value="roll">Voter Roll</TabsTrigger>
+          <TabsTrigger value="settings"><Calendar className="h-4 w-4" />Schedule</TabsTrigger>
+          <TabsTrigger value="audit"><ScrollText className="h-4 w-4" />Audit Trail</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
@@ -92,6 +100,12 @@ function ManageElection() {
         </TabsContent>
         <TabsContent value="roll" className="space-y-4">
           <RollPanel electionId={electionId} roll={roll} reload={load} />
+        </TabsContent>
+        <TabsContent value="settings" className="space-y-4">
+          <SchedulePanel election={election} reload={load} />
+        </TabsContent>
+        <TabsContent value="audit" className="space-y-4">
+          <AuditPanel entries={audit} />
         </TabsContent>
       </Tabs>
     </div>
@@ -182,7 +196,20 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
               {roll.map((r) => (
                 <tr key={r.id} className="border-b border-border/50">
                   <td className="px-4 py-3">{r.email || r.user_id}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{r.voting_token || "—"}</td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    {r.voting_token ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                        onClick={() => {
+                          navigator.clipboard.writeText(r.voting_token!);
+                          toast.success("Token copied");
+                        }}
+                      >
+                        {r.voting_token} <Copy className="h-3 w-3" />
+                      </button>
+                    ) : "—"}
+                  </td>
                   <td className="px-4 py-3">{r.has_voted ? <Badge>voted</Badge> : <Badge variant="outline">pending</Badge>}</td>
                   <td className="px-4 py-3 text-right">
                     <Button size="icon" variant="ghost" onClick={() => remove(r.id)} disabled={r.has_voted}><Trash2 className="h-4 w-4" /></Button>
@@ -196,5 +223,86 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
       </Card>
       <p className="text-xs text-muted-foreground"><ExternalLink className="mr-1 inline h-3 w-3" /> Voters use their token at <code className="rounded bg-muted px-1">/login</code> — Voting Token tab.</p>
     </>
+  );
+}
+
+function SchedulePanel({ election, reload }: { election: Election; reload: () => void }) {
+  const toLocal = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 16) : "");
+  const [opensAt, setOpensAt] = useState(toLocal(election.opens_at));
+  const [closesAt, setClosesAt] = useState(toLocal(election.closes_at));
+  const [anonymous, setAnonymous] = useState(election.anonymous);
+  const [allowAbstain, setAllowAbstain] = useState(election.allow_abstain);
+  const [saving, setSaving] = useState(false);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const { error } = await supabase.from("elections").update({
+      opens_at: opensAt ? new Date(opensAt).toISOString() : null,
+      closes_at: closesAt ? new Date(closesAt).toISOString() : null,
+      anonymous, allow_abstain: allowAbstain,
+    }).eq("id", election.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    await supabase.from("audit_log").insert({ election_id: election.id, event: "schedule_updated" });
+    toast.success("Schedule saved");
+    reload();
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="font-serif">Schedule & integrity</CardTitle></CardHeader>
+      <CardContent>
+        <form onSubmit={save} className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="opens">Opens at</Label>
+            <Input id="opens" type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="closes">Closes at</Label>
+            <Input id="closes" type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+            Anonymous ballots (no voter identity stored on ballot)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={allowAbstain} onChange={(e) => setAllowAbstain(e.target.checked)} />
+            Allow abstain
+          </label>
+          <div className="md:col-span-2">
+            <Button type="submit" variant="institutional" disabled={saving}>{saving ? "Saving…" : "Save schedule"}</Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AuditPanel({ entries }: { entries: AuditEntry[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif">Immutable audit trail</CardTitle>
+        <p className="text-xs text-muted-foreground">All material lifecycle events and ballot casts are recorded here for observers and auditors.</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <tr><th className="px-4 py-3">When</th><th className="px-4 py-3">Event</th><th className="px-4 py-3">Actor</th></tr>
+          </thead>
+          <tbody>
+            {entries.map((a) => (
+              <tr key={a.id} className="border-b border-border/50">
+                <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString()}</td>
+                <td className="px-4 py-3 font-mono text-xs">{a.event}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{a.actor_id ? a.actor_id.slice(0, 8) + "…" : "system"}</td>
+              </tr>
+            ))}
+            {entries.length === 0 && <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No events recorded yet.</td></tr>}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
   );
 }
