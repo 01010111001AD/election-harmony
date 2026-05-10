@@ -19,9 +19,11 @@ export const Route = createFileRoute("/_authenticated/app/elections/$electionId"
 type Election = {
   id: string; title: string; description: string | null;
   method: string; status: string; max_selections: number; owner_id: string;
+  opens_at: string | null; closes_at: string | null; anonymous: boolean; allow_abstain: boolean;
 };
 type Candidate = { id: string; name: string; statement: string | null; display_order: number };
 type RollEntry = { id: string; email: string | null; voting_token: string | null; has_voted: boolean; user_id: string | null };
+type AuditEntry = { id: string; event: string; actor_id: string | null; created_at: string; details: any };
 
 function genToken() {
   const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
