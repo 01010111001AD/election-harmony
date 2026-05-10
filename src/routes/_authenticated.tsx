@@ -38,6 +38,9 @@ function AuthedLayout() {
             <Link to="/app/dashboard" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground" activeProps={{ className: "text-foreground" }}>
               <LayoutDashboard className="h-4 w-4" /> Dashboard
             </Link>
+            <Link to="/app/organizations" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground" activeProps={{ className: "text-foreground" }}>
+              <Building2 className="h-4 w-4" /> Organizations
+            </Link>
           </nav>
           <div className="flex items-center gap-3">
             <span className="hidden text-xs text-muted-foreground sm:inline">{user.email}</span>
