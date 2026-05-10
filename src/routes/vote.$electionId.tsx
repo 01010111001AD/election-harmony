@@ -39,6 +39,10 @@ function VotePage() {
       const { data: cands } = await supabase.from("candidates").select("id, name, statement").eq("election_id", electionId).order("display_order");
       setElection(el as Election | null);
       setCandidates((cands ?? []) as Candidate[]);
+      if ((el as any)?.organization_id) {
+        const { data: org } = await supabase.from("organizations").select("name,logo_url,brand_color,accent_color,tagline").eq("id", (el as any).organization_id).maybeSingle();
+        if (org) setBrand(org as Brand);
+      }
 
       let roll: any = null;
       if (user) {
