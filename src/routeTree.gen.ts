@@ -23,6 +23,7 @@ import { Route as AuthenticatedAppOrganizationsRouteImport } from './routes/_aut
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppOrganizationsOrgIdRouteImport } from './routes/_authenticated/app.organizations.$orgId'
 import { Route as AuthenticatedAppElectionsElectionIdRouteImport } from './routes/_authenticated/app.elections.$electionId'
+import { Route as ApiPublicOrgsSlugMembersRouteImport } from './routes/api/public/orgs.$slug.members'
 import { Route as AuthenticatedAppElectionsElectionIdResultsRouteImport } from './routes/_authenticated/app.elections.$electionId.results'
 
 const UseCasesRoute = UseCasesRouteImport.update({
@@ -98,6 +99,12 @@ const AuthenticatedAppElectionsElectionIdRoute =
     path: '/app/elections/$electionId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicOrgsSlugMembersRoute =
+  ApiPublicOrgsSlugMembersRouteImport.update({
+    id: '/api/public/orgs/$slug/members',
+    path: '/api/public/orgs/$slug/members',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAppElectionsElectionIdResultsRoute =
   AuthenticatedAppElectionsElectionIdResultsRouteImport.update({
     id: '/results',
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
   '/app/organizations/$orgId': typeof AuthenticatedAppOrganizationsOrgIdRoute
   '/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
+  '/api/public/orgs/$slug/members': typeof ApiPublicOrgsSlugMembersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -136,6 +144,7 @@ export interface FileRoutesByTo {
   '/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
   '/app/organizations/$orgId': typeof AuthenticatedAppOrganizationsOrgIdRoute
   '/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
+  '/api/public/orgs/$slug/members': typeof ApiPublicOrgsSlugMembersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -154,6 +163,7 @@ export interface FileRoutesById {
   '/_authenticated/app/elections/$electionId': typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
   '/_authenticated/app/organizations/$orgId': typeof AuthenticatedAppOrganizationsOrgIdRoute
   '/_authenticated/app/elections/$electionId/results': typeof AuthenticatedAppElectionsElectionIdResultsRoute
+  '/api/public/orgs/$slug/members': typeof ApiPublicOrgsSlugMembersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/app/elections/$electionId'
     | '/app/organizations/$orgId'
     | '/app/elections/$electionId/results'
+    | '/api/public/orgs/$slug/members'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/app/elections/$electionId'
     | '/app/organizations/$orgId'
     | '/app/elections/$electionId/results'
+    | '/api/public/orgs/$slug/members'
   id:
     | '__root__'
     | '/'
@@ -205,6 +217,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/elections/$electionId'
     | '/_authenticated/app/organizations/$orgId'
     | '/_authenticated/app/elections/$electionId/results'
+    | '/api/public/orgs/$slug/members'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -218,6 +231,7 @@ export interface RootRouteChildren {
   SecurityRoute: typeof SecurityRoute
   UseCasesRoute: typeof UseCasesRoute
   VoteElectionIdRoute: typeof VoteElectionIdRoute
+  ApiPublicOrgsSlugMembersRoute: typeof ApiPublicOrgsSlugMembersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -320,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppElectionsElectionIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/orgs/$slug/members': {
+      id: '/api/public/orgs/$slug/members'
+      path: '/api/public/orgs/$slug/members'
+      fullPath: '/api/public/orgs/$slug/members'
+      preLoaderRoute: typeof ApiPublicOrgsSlugMembersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/app/elections/$electionId/results': {
       id: '/_authenticated/app/elections/$electionId/results'
       path: '/results'
@@ -389,6 +410,7 @@ const rootRouteChildren: RootRouteChildren = {
   SecurityRoute: SecurityRoute,
   UseCasesRoute: UseCasesRoute,
   VoteElectionIdRoute: VoteElectionIdRoute,
+  ApiPublicOrgsSlugMembersRoute: ApiPublicOrgsSlugMembersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
