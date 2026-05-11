@@ -185,6 +185,103 @@ export type Database = {
           },
         ]
       }
+      org_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_members_directory: {
+        Row: {
+          created_at: string
+          email: string
+          external_id: string | null
+          full_name: string | null
+          id: string
+          invited_at: string | null
+          joined_at: string | null
+          metadata: Json
+          organization_id: string
+          status: Database["public"]["Enums"]["member_status"]
+          tags: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          external_id?: string | null
+          full_name?: string | null
+          id?: string
+          invited_at?: string | null
+          joined_at?: string | null
+          metadata?: Json
+          organization_id: string
+          status?: Database["public"]["Enums"]["member_status"]
+          tags?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          external_id?: string | null
+          full_name?: string | null
+          id?: string
+          invited_at?: string | null
+          joined_at?: string | null
+          metadata?: Json
+          organization_id?: string
+          status?: Database["public"]["Enums"]["member_status"]
+          tags?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_directory_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -358,6 +455,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      enroll_voters_by_tag: {
+        Args: { _election_id: string; _tag: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -385,6 +486,7 @@ export type Database = {
     Enums: {
       app_role: "platform_admin" | "election_admin" | "voter" | "observer"
       election_status: "draft" | "scheduled" | "open" | "closed" | "certified"
+      member_status: "active" | "invited" | "suspended"
       org_member_role: "owner" | "admin" | "member" | "observer"
       voting_method: "fptp" | "approval" | "ranked" | "yes_no"
     }
@@ -516,6 +618,7 @@ export const Constants = {
     Enums: {
       app_role: ["platform_admin", "election_admin", "voter", "observer"],
       election_status: ["draft", "scheduled", "open", "closed", "certified"],
+      member_status: ["active", "invited", "suspended"],
       org_member_role: ["owner", "admin", "member", "observer"],
       voting_method: ["fptp", "approval", "ranked", "yes_no"],
     },
