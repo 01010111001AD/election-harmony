@@ -11,64 +11,87 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, Users, Vote, Globe, Activity, Upload } from "lucide-react";
+import { MemberTable } from "@/components/org/MemberTable";
+import { ApiKeyManager } from "@/components/org/ApiKeyManager";
 
 export const Route = createFileRoute("/_authenticated/app/organizations/$orgId")({
   component: ManageOrg,
 });
 
 type Org = { id: string; name: string; slug: string; brand_color: string; accent_color: string; logo_url: string | null; tagline: string | null };
-type Member = { id: string; user_id: string; role: string };
-type Election = { id: string; title: string; status: string };
+type StaffMember = { id: string; user_id: string; role: string };
+type Election = { id: string; title: string; status: string; created_at: string };
 
 function ManageOrg() {
   const { orgId } = Route.useParams();
   const { user } = useAuth();
   const [org, setOrg] = useState<Org | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [elections, setElections] = useState<Election[]>([]);
-  const myRole = members.find((m) => m.user_id === user?.id)?.role;
+  const [stats, setStats] = useState({ members: 0, ballots: 0 });
+  const myRole = staff.find((m) => m.user_id === user?.id)?.role;
   const isAdmin = myRole === "owner" || myRole === "admin";
 
   const load = async () => {
-    const [o, m, e] = await Promise.all([
+    const [o, s, e, mc] = await Promise.all([
       supabase.from("organizations").select("*").eq("id", orgId).single(),
       supabase.from("organization_members").select("*").eq("organization_id", orgId),
-      supabase.from("elections").select("id,title,status").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("elections").select("id,title,status,created_at").eq("organization_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("org_members_directory").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
     ]);
     if (o.data) setOrg(o.data as Org);
-    setMembers((m.data ?? []) as Member[]);
+    setStaff((s.data ?? []) as StaffMember[]);
     setElections((e.data ?? []) as Election[]);
+    setStats({ members: mc.count ?? 0, ballots: 0 });
   };
   useEffect(() => { load(); }, [orgId]);
 
   if (!org) return <p className="text-muted-foreground">Loading…</p>;
 
+  const portalUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/o/${org.slug}`;
+
   return (
     <div className="space-y-8">
       <div>
         <Link to="/app/organizations" className="text-xs uppercase tracking-[0.22em] text-gold hover:underline">← All organizations</Link>
-        <div className="mt-3 flex items-center gap-4">
-          {org.logo_url && <img src={org.logo_url} alt="" className="h-12 w-12 rounded-lg object-cover" />}
-          <div>
-            <h1 className="font-serif text-3xl font-semibold tracking-tight">{org.name}</h1>
-            <p className="text-sm text-muted-foreground">{org.tagline ?? `Tenant • ${org.slug}`}</p>
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {org.logo_url && <img src={org.logo_url} alt="" className="h-14 w-14 rounded-xl object-cover" />}
+            <div>
+              <h1 className="font-serif text-3xl font-semibold tracking-tight">{org.name}</h1>
+              <p className="text-sm text-muted-foreground">{org.tagline ?? `Tenant • ${org.slug}`}</p>
+            </div>
           </div>
+          <Button variant="outline" asChild>
+            <a href={portalUrl} target="_blank" rel="noreferrer"><Globe className="h-4 w-4" /> View public portal</a>
+          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="branding">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <KpiCard icon={Users} label="Members" value={stats.members} />
+        <KpiCard icon={Vote} label="Elections" value={elections.length} />
+        <KpiCard icon={Activity} label="Active" value={elections.filter((e) => e.status === "open").length} />
+      </div>
+
+      <Tabs defaultValue="members">
         <TabsList>
-          <TabsTrigger value="branding">White-Label Branding</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="elections">Elections</TabsTrigger>
+          <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations & API</TabsTrigger>
+          <TabsTrigger value="staff">Staff & Roles</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="branding"><BrandingPanel org={org} canEdit={isAdmin} reload={load} /></TabsContent>
-        <TabsContent value="members"><MembersPanel orgId={orgId} members={members} canEdit={isAdmin} reload={load} /></TabsContent>
-        <TabsContent value="elections">
+        <TabsContent value="members" className="mt-6"><MemberTable orgId={orgId} canEdit={isAdmin} /></TabsContent>
+
+        <TabsContent value="elections" className="mt-6">
           <Card>
-            <CardHeader><CardTitle className="font-serif">Elections under this tenant</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="font-serif">Elections</CardTitle>
+              <Button asChild variant="institutional"><Link to="/app/dashboard">+ New election</Link></Button>
+            </CardHeader>
             <CardContent className="space-y-2">
               {elections.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No elections yet. Create one from the dashboard and assign this organization.</p>
@@ -81,8 +104,27 @@ function ManageOrg() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="branding" className="mt-6"><BrandingPanel org={org} canEdit={isAdmin} reload={load} /></TabsContent>
+
+        <TabsContent value="integrations" className="mt-6">
+          {user && <ApiKeyManager orgId={orgId} orgSlug={org.slug} canEdit={isAdmin} userId={user.id} />}
+        </TabsContent>
+
+        <TabsContent value="staff" className="mt-6"><StaffPanel orgId={orgId} members={staff} canEdit={isAdmin} reload={load} /></TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function KpiCard({ icon: Icon, label, value }: { icon: any; label: string; value: number }) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 py-4">
+        <div className="rounded-lg bg-gold/10 p-2.5"><Icon className="h-5 w-5 text-gold" /></div>
+        <div><p className="font-serif text-2xl font-semibold">{value.toLocaleString()}</p><p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p></div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -93,6 +135,19 @@ function BrandingPanel({ org, canEdit, reload }: { org: Org; canEdit: boolean; r
   const [accent, setAccent] = useState(org.accent_color);
   const [logo, setLogo] = useState(org.logo_url ?? "");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const uploadLogo = async (file: File) => {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${org.id}/logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("org-logos").upload(path, file, { upsert: true });
+    if (error) { setUploading(false); return toast.error(error.message); }
+    const { data } = supabase.storage.from("org-logos").getPublicUrl(path);
+    setLogo(data.publicUrl);
+    setUploading(false);
+    toast.success("Logo uploaded — remember to save");
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +169,19 @@ function BrandingPanel({ org, canEdit, reload }: { org: Org; canEdit: boolean; r
           <div className="space-y-4">
             <div><Label htmlFor="n">Display name</Label><Input id="n" value={name} disabled={!canEdit} onChange={(e) => setName(e.target.value)} /></div>
             <div><Label htmlFor="t">Tagline</Label><Textarea id="t" rows={2} value={tagline} disabled={!canEdit} onChange={(e) => setTagline(e.target.value)} /></div>
-            <div><Label htmlFor="l">Logo URL</Label><Input id="l" value={logo} disabled={!canEdit} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo.png" /></div>
+            <div>
+              <Label>Logo</Label>
+              <div className="mt-1 flex items-center gap-3">
+                {logo && <img src={logo} alt="" className="h-12 w-12 rounded-md border border-border object-cover" />}
+                <label className="flex-1">
+                  <div className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border border-input px-3 text-sm hover:bg-muted">
+                    <Upload className="h-4 w-4" />{uploading ? "Uploading…" : "Upload logo"}
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" disabled={!canEdit || uploading} onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])} />
+                </label>
+              </div>
+              <Input className="mt-2" value={logo} disabled={!canEdit} onChange={(e) => setLogo(e.target.value)} placeholder="or paste image URL" />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label htmlFor="b">Brand color</Label><Input id="b" type="color" value={brand} disabled={!canEdit} onChange={(e) => setBrand(e.target.value)} /></div>
               <div><Label htmlFor="a">Accent</Label><Input id="a" type="color" value={accent} disabled={!canEdit} onChange={(e) => setAccent(e.target.value)} /></div>
@@ -139,7 +206,7 @@ function BrandingPanel({ org, canEdit, reload }: { org: Org; canEdit: boolean; r
   );
 }
 
-function MembersPanel({ orgId, members, canEdit, reload }: { orgId: string; members: Member[]; canEdit: boolean; reload: () => void }) {
+function StaffPanel({ orgId, members, canEdit, reload }: { orgId: string; members: StaffMember[]; canEdit: boolean; reload: () => void }) {
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState("member");
 
@@ -147,7 +214,7 @@ function MembersPanel({ orgId, members, canEdit, reload }: { orgId: string; memb
     e.preventDefault();
     const { error } = await supabase.from("organization_members").insert({ organization_id: orgId, user_id: userId, role: role as any });
     if (error) return toast.error(error.message);
-    setUserId(""); toast.success("Member added"); reload();
+    setUserId(""); toast.success("Staff added"); reload();
   };
   const remove = async (id: string) => {
     const { error } = await supabase.from("organization_members").delete().eq("id", id);
@@ -159,7 +226,7 @@ function MembersPanel({ orgId, members, canEdit, reload }: { orgId: string; memb
     <div className="space-y-4">
       {canEdit && (
         <Card>
-          <CardHeader><CardTitle className="font-serif">Invite member</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="font-serif">Add staff member</CardTitle><p className="text-xs text-muted-foreground">Staff can manage elections, members, and branding. For end voters, use the Members tab.</p></CardHeader>
           <CardContent>
             <form onSubmit={add} className="grid gap-3 md:grid-cols-[2fr_1fr_auto]">
               <Input required placeholder="User ID (UUID)" value={userId} onChange={(e) => setUserId(e.target.value)} />
@@ -174,7 +241,6 @@ function MembersPanel({ orgId, members, canEdit, reload }: { orgId: string; memb
               </Select>
               <Button type="submit" variant="institutional">Add</Button>
             </form>
-            <p className="mt-2 text-xs text-muted-foreground">Tip: a user's UUID can be found in their profile after signup. Email-based invites can be added later.</p>
           </CardContent>
         </Card>
       )}
