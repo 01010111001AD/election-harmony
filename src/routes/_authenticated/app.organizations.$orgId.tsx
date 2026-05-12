@@ -96,11 +96,11 @@ function ManageOrg() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-serif">Elections</CardTitle>
-              <Button asChild variant="institutional"><Link to="/app/dashboard">+ New election</Link></Button>
+              {isAdmin && <NewElectionButton orgId={orgId} onCreated={load} />}
             </CardHeader>
             <CardContent className="space-y-2">
               {elections.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No elections yet. Create one from the dashboard and assign this organization.</p>
+                <p className="text-sm text-muted-foreground">No elections yet. Click <strong>New election</strong> to launch one for {org.name}.</p>
               ) : elections.map((el) => (
                 <div key={el.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                   <div className="flex items-center gap-2"><span className="font-medium">{el.title}</span><Badge variant="outline">{el.status}</Badge></div>
