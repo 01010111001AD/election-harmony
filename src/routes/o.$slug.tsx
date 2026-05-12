@@ -60,7 +60,9 @@ function OrgPortal() {
       .maybeSingle();
     if (error || !data) return toast.error("Token not recognized");
     if (data.has_voted) return toast.success("This token has already been used to cast a ballot.");
-    navigate({ to: "/vote/$electionId", params: { electionId: data.election_id }, search: { token: t } as any });
+    sessionStorage.setItem("electa.token", t);
+    sessionStorage.setItem("electa.tokenRoll", JSON.stringify({ election_id: data.election_id }));
+    navigate({ to: "/vote/$electionId", params: { electionId: data.election_id } });
   };
 
   if (loading) return <p className="p-12 text-center text-muted-foreground">Loading…</p>;
