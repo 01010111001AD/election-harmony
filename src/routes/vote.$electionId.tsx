@@ -53,7 +53,7 @@ function VotePage() {
         const cached = sessionStorage.getItem("electa.tokenRoll");
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (parsed.election_id === electionId) roll = parsed;
+          if (parsed.election_id === electionId) roll = { id: parsed.id ?? "token", has_voted: !!parsed.has_voted };
         }
       }
       if (roll) {
