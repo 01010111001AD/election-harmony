@@ -273,3 +273,67 @@ function StaffPanel({ orgId, members, canEdit, reload }: { orgId: string; member
     </div>
   );
 }
+
+function NewElectionButton({ orgId, onCreated }: { orgId: string; onCreated: () => void }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [method, setMethod] = useState<"fptp" | "approval" | "ranked" | "yes_no">("fptp");
+  const [maxSel, setMaxSel] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setSubmitting(true);
+    const { error } = await supabase.from("elections").insert({
+      title, description, method, max_selections: maxSel,
+      owner_id: user.id, organization_id: orgId,
+    });
+    setSubmitting(false);
+    if (error) {
+      if (/row-level security|policy/i.test(error.message)) {
+        return toast.error("You need the Election Admin role first. Open the Console (Dashboard) and click Enable Election Admin.");
+      }
+      return toast.error(error.message);
+    }
+    toast.success("Election created");
+    setOpen(false); setTitle(""); setDescription(""); setMaxSel(1); setMethod("fptp");
+    onCreated();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="institutional"><Plus className="h-4 w-4" /> New election</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader><DialogTitle className="font-serif text-2xl">New Election</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div><Label htmlFor="ne-t">Title</Label><Input id="ne-t" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div><Label htmlFor="ne-d">Description</Label><Textarea id="ne-d" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Voting method</Label>
+              <Select value={method} onValueChange={(v) => setMethod(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fptp">First Past the Post</SelectItem>
+                  <SelectItem value="approval">Approval</SelectItem>
+                  <SelectItem value="ranked">Ranked Choice</SelectItem>
+                  <SelectItem value="yes_no">Yes / No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="ne-m">Max selections</Label>
+              <Input id="ne-m" type="number" min={1} value={maxSel} onChange={(e) => setMaxSel(Number(e.target.value))} />
+            </div>
+          </div>
+          <DialogFooter><Button type="submit" variant="institutional" disabled={submitting}>{submitting ? "Creating…" : "Create"}</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
