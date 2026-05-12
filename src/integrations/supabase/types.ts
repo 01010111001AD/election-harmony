@@ -455,6 +455,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_election_admin: { Args: never; Returns: undefined }
       enroll_voters_by_tag: {
         Args: { _election_id: string; _tag: string }
         Returns: number

@@ -52,7 +52,7 @@ function Dashboard() {
 
   const promoteToAdmin = async () => {
     if (!user) return;
-    const { error } = await supabase.from("user_roles").insert({ user_id: user.id, role: "election_admin" });
+    const { error } = await supabase.rpc("claim_election_admin");
     if (error) return toast.error(error.message);
     setIsAdmin(true);
     toast.success("Election Admin role granted");

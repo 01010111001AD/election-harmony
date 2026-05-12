@@ -53,6 +53,10 @@ function ManageElection() {
   useEffect(() => { load(); }, [electionId]);
 
   const setStatus = async (status: string) => {
+    if (status === "open") {
+      if (candidates.length === 0) return toast.error("Add at least one candidate before opening voting.");
+      if (roll.length === 0) return toast.error("Enroll at least one voter before opening voting.");
+    }
     const patch: any = { status };
     if (status === "open") patch.opens_at = new Date().toISOString();
     if (status === "closed") patch.closes_at = new Date().toISOString();
@@ -160,6 +164,8 @@ function CandidatesPanel({ electionId, candidates, reload }: { electionId: strin
 
 function RollPanel({ electionId, roll, reload }: { electionId: string; roll: RollEntry[]; reload: () => void }) {
   const [emails, setEmails] = useState("");
+  const [tag, setTag] = useState("");
+  const [enrolling, setEnrolling] = useState(false);
   const enroll = async (e: React.FormEvent) => {
     e.preventDefault();
     const list = emails.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
@@ -169,6 +175,14 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
     if (error) return toast.error(error.message);
     setEmails(""); toast.success(`${rows.length} voters enrolled`); reload();
   };
+  const enrollByTag = async () => {
+    setEnrolling(true);
+    const { data, error } = await supabase.rpc("enroll_voters_by_tag", { _election_id: electionId, _tag: tag.trim() });
+    setEnrolling(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${data ?? 0} voters enrolled from directory`);
+    setTag(""); reload();
+  };
   const remove = async (id: string) => {
     const { error } = await supabase.from("voter_roll").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -177,7 +191,16 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
   return (
     <>
       <Card>
-        <CardHeader><CardTitle className="font-serif">Enroll voters</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="font-serif">Enroll from organization directory</CardTitle><p className="text-xs text-muted-foreground">Pull active members from your tenant's directory. Leave the tag empty to enroll everyone.</p></CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input placeholder="tag (optional, e.g. shareholders-2026)" value={tag} onChange={(e) => setTag(e.target.value)} />
+            <Button onClick={enrollByTag} disabled={enrolling} variant="institutional">{enrolling ? "Enrolling…" : "Enroll from directory"}</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="font-serif">Enroll voters manually</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={enroll} className="space-y-3">
             <Label>Emails (comma, space, or newline separated)</Label>

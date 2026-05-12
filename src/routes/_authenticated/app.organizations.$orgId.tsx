@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Users, Vote, Globe, Activity, Upload } from "lucide-react";
+import { Trash2, Users, Vote, Globe, Activity, Upload, Plus, Copy } from "lucide-react";
 import { MemberTable } from "@/components/org/MemberTable";
 import { ApiKeyManager } from "@/components/org/ApiKeyManager";
 
@@ -63,9 +64,14 @@ function ManageOrg() {
               <p className="text-sm text-muted-foreground">{org.tagline ?? `Tenant • ${org.slug}`}</p>
             </div>
           </div>
-          <Button variant="outline" asChild>
-            <a href={portalUrl} target="_blank" rel="noreferrer"><Globe className="h-4 w-4" /> View public portal</a>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { navigator.clipboard.writeText(portalUrl); toast.success("Portal link copied"); }}>
+              <Copy className="h-4 w-4" /> Copy portal link
+            </Button>
+            <Button variant="outline" asChild>
+              <a href={portalUrl} target="_blank" rel="noreferrer"><Globe className="h-4 w-4" /> View public portal</a>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -90,11 +96,11 @@ function ManageOrg() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-serif">Elections</CardTitle>
-              <Button asChild variant="institutional"><Link to="/app/dashboard">+ New election</Link></Button>
+              {isAdmin && <NewElectionButton orgId={orgId} onCreated={load} />}
             </CardHeader>
             <CardContent className="space-y-2">
               {elections.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No elections yet. Create one from the dashboard and assign this organization.</p>
+                <p className="text-sm text-muted-foreground">No elections yet. Click <strong>New election</strong> to launch one for {org.name}.</p>
               ) : elections.map((el) => (
                 <div key={el.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                   <div className="flex items-center gap-2"><span className="font-medium">{el.title}</span><Badge variant="outline">{el.status}</Badge></div>
@@ -265,5 +271,69 @@ function StaffPanel({ orgId, members, canEdit, reload }: { orgId: string; member
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function NewElectionButton({ orgId, onCreated }: { orgId: string; onCreated: () => void }) {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [method, setMethod] = useState<"fptp" | "approval" | "ranked" | "yes_no">("fptp");
+  const [maxSel, setMaxSel] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setSubmitting(true);
+    const { error } = await supabase.from("elections").insert({
+      title, description, method, max_selections: maxSel,
+      owner_id: user.id, organization_id: orgId,
+    });
+    setSubmitting(false);
+    if (error) {
+      if (/row-level security|policy/i.test(error.message)) {
+        return toast.error("You need the Election Admin role first. Open the Console (Dashboard) and click Enable Election Admin.");
+      }
+      return toast.error(error.message);
+    }
+    toast.success("Election created");
+    setOpen(false); setTitle(""); setDescription(""); setMaxSel(1); setMethod("fptp");
+    onCreated();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="institutional"><Plus className="h-4 w-4" /> New election</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader><DialogTitle className="font-serif text-2xl">New Election</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div><Label htmlFor="ne-t">Title</Label><Input id="ne-t" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div><Label htmlFor="ne-d">Description</Label><Textarea id="ne-d" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Voting method</Label>
+              <Select value={method} onValueChange={(v) => setMethod(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fptp">First Past the Post</SelectItem>
+                  <SelectItem value="approval">Approval</SelectItem>
+                  <SelectItem value="ranked">Ranked Choice</SelectItem>
+                  <SelectItem value="yes_no">Yes / No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="ne-m">Max selections</Label>
+              <Input id="ne-m" type="number" min={1} value={maxSel} onChange={(e) => setMaxSel(Number(e.target.value))} />
+            </div>
+          </div>
+          <DialogFooter><Button type="submit" variant="institutional" disabled={submitting}>{submitting ? "Creating…" : "Create"}</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
