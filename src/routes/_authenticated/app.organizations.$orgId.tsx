@@ -64,9 +64,14 @@ function ManageOrg() {
               <p className="text-sm text-muted-foreground">{org.tagline ?? `Tenant • ${org.slug}`}</p>
             </div>
           </div>
-          <Button variant="outline" asChild>
-            <a href={portalUrl} target="_blank" rel="noreferrer"><Globe className="h-4 w-4" /> View public portal</a>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { navigator.clipboard.writeText(portalUrl); toast.success("Portal link copied"); }}>
+              <Copy className="h-4 w-4" /> Copy portal link
+            </Button>
+            <Button variant="outline" asChild>
+              <a href={portalUrl} target="_blank" rel="noreferrer"><Globe className="h-4 w-4" /> View public portal</a>
+            </Button>
+          </div>
         </div>
       </div>
 
