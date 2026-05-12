@@ -57,15 +57,14 @@ function LoginPage() {
   const handleToken = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase
-      .from("voter_roll")
-      .select("id, election_id, has_voted, email")
-      .eq("voting_token", token.trim())
-      .maybeSingle();
+    const { data, error } = await supabase.functions.invoke("verify-voting-token", {
+      body: { token: token.trim() },
+    });
     setLoading(false);
-    if (error || !data) return toast.error("Invalid voting token");
+    if (error || !data?.ok) return toast.error((data as any)?.error || "Invalid voting token");
+    if (data.has_voted) return toast.error("This token has already been used.");
     sessionStorage.setItem("electa.token", token.trim());
-    sessionStorage.setItem("electa.tokenRoll", JSON.stringify(data));
+    sessionStorage.setItem("electa.tokenRoll", JSON.stringify({ election_id: data.election_id, has_voted: false }));
     navigate({ to: "/vote/$electionId", params: { electionId: data.election_id } });
   };
 
