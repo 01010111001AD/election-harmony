@@ -2,3 +2,6 @@ project_id = "pfzihbmdaksiiduwympn"
 
 [functions.cast-ballot-token]
 verify_jwt = false
+
+[functions.verify-voting-token]
+verify_jwt = false

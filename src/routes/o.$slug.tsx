@@ -53,15 +53,13 @@ function OrgPortal() {
     e.preventDefault();
     const t = token.trim();
     if (!t) return;
-    const { data, error } = await supabase
-      .from("voter_roll")
-      .select("election_id, has_voted")
-      .eq("voting_token", t)
-      .maybeSingle();
-    if (error || !data) return toast.error("Token not recognized");
+    const { data, error } = await supabase.functions.invoke("verify-voting-token", {
+      body: { token: t },
+    });
+    if (error || !data?.ok) return toast.error((data as any)?.error || "Token not recognized");
     if (data.has_voted) return toast.success("This token has already been used to cast a ballot.");
     sessionStorage.setItem("electa.token", t);
-    sessionStorage.setItem("electa.tokenRoll", JSON.stringify({ election_id: data.election_id }));
+    sessionStorage.setItem("electa.tokenRoll", JSON.stringify({ election_id: data.election_id, has_voted: false }));
     navigate({ to: "/vote/$electionId", params: { electionId: data.election_id } });
   };
 
