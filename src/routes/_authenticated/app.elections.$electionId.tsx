@@ -53,6 +53,10 @@ function ManageElection() {
   useEffect(() => { load(); }, [electionId]);
 
   const setStatus = async (status: string) => {
+    if (status === "open") {
+      if (candidates.length === 0) return toast.error("Add at least one candidate before opening voting.");
+      if (roll.length === 0) return toast.error("Enroll at least one voter before opening voting.");
+    }
     const patch: any = { status };
     if (status === "open") patch.opens_at = new Date().toISOString();
     if (status === "closed") patch.closes_at = new Date().toISOString();
