@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Users, Vote, Globe, Activity, Upload } from "lucide-react";
+import { Trash2, Users, Vote, Globe, Activity, Upload, Plus, Copy } from "lucide-react";
 import { MemberTable } from "@/components/org/MemberTable";
 import { ApiKeyManager } from "@/components/org/ApiKeyManager";
 
