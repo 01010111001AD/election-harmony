@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Trash2, BarChart3, ExternalLink, Copy, Calendar, ScrollText } from "lucide-react";
+import { Trash2, BarChart3, ExternalLink, Copy, Calendar, ScrollText, Upload, Image as ImageIcon } from "lucide-react";
+import { VoterRollImportWizard } from "@/components/election/VoterRollImportWizard";
 
 export const Route = createFileRoute("/_authenticated/app/elections/$electionId")({
   component: ManageElection,
@@ -20,8 +23,10 @@ type Election = {
   id: string; title: string; description: string | null;
   method: string; status: string; max_selections: number; owner_id: string;
   opens_at: string | null; closes_at: string | null; anonymous: boolean; allow_abstain: boolean;
+  organization_id: string | null;
 };
-type Candidate = { id: string; name: string; statement: string | null; display_order: number };
+type Org = { id: string; name: string; logo_url: string | null; brand_color: string; accent_color: string };
+type Candidate = { id: string; name: string; statement: string | null; display_order: number; photo_url: string | null };
 type RollEntry = { id: string; email: string | null; voting_token: string | null; has_voted: boolean; user_id: string | null };
 type AuditEntry = { id: string; event: string; actor_id: string | null; created_at: string; details: any };
 
@@ -33,7 +38,9 @@ function genToken() {
 
 function ManageElection() {
   const { electionId } = Route.useParams();
+  const navigate = useNavigate();
   const [election, setElection] = useState<Election | null>(null);
+  const [org, setOrg] = useState<Org | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [roll, setRoll] = useState<RollEntry[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
@@ -45,7 +52,13 @@ function ManageElection() {
       supabase.from("voter_roll").select("*").eq("election_id", electionId).order("created_at"),
       supabase.from("audit_log").select("*").eq("election_id", electionId).order("created_at", { ascending: false }).limit(100),
     ]);
-    if (e.data) setElection(e.data as Election);
+    if (e.data) {
+      setElection(e.data as Election);
+      if ((e.data as any).organization_id) {
+        const { data: o } = await supabase.from("organizations").select("id,name,logo_url,brand_color,accent_color").eq("id", (e.data as any).organization_id).maybeSingle();
+        setOrg(o as Org | null);
+      } else { setOrg(null); }
+    }
     setCandidates((c.data ?? []) as Candidate[]);
     setRoll((r.data ?? []) as RollEntry[]);
     setAudit((a.data ?? []) as AuditEntry[]);
@@ -67,10 +80,29 @@ function ManageElection() {
     load();
   };
 
+  const deleteElection = async () => {
+    const { error } = await supabase.rpc("delete_election", { _id: electionId });
+    if (error) return toast.error(error.message);
+    toast.success("Election deleted");
+    navigate({ to: "/app/dashboard" });
+  };
+
   if (!election) return <p className="text-muted-foreground">Loading…</p>;
 
   return (
     <div className="space-y-8">
+      {org && (
+        <div className="overflow-hidden rounded-2xl border border-border text-white" style={{ background: `linear-gradient(135deg, ${org.brand_color}, ${org.accent_color})` }}>
+          <div className="flex items-center gap-4 px-6 py-5">
+            {org.logo_url && <img src={org.logo_url} alt="" className="h-12 w-12 rounded-lg bg-white/10 object-cover" />}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.22em] opacity-80">Tenant • {org.name}</p>
+              <p className="font-serif text-lg">Voters see this branding on the ballot</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link to="/app/dashboard" className="text-xs uppercase tracking-[0.22em] text-gold hover:underline">← Back</Link>
@@ -88,6 +120,23 @@ function ManageElection() {
           {election.status === "open" && <Button variant="outline" onClick={() => setStatus("closed")}>Close</Button>}
           {election.status === "closed" && <Button variant="gold" onClick={() => setStatus("certified")}>Certify</Button>}
           <Button asChild variant="ghost"><Link to="/app/elections/$electionId/results" params={{ electionId }}><BarChart3 className="h-4 w-4" />Results</Link></Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" />Delete</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this election?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently removes the election, candidates, voter roll, ballots, and audit log. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={deleteElection} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete election</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -103,7 +152,7 @@ function ManageElection() {
           <CandidatesPanel electionId={electionId} candidates={candidates} reload={load} />
         </TabsContent>
         <TabsContent value="roll" className="space-y-4">
-          <RollPanel electionId={electionId} roll={roll} reload={load} />
+          <RollPanel electionId={electionId} orgId={election.organization_id} roll={roll} reload={load} />
         </TabsContent>
         <TabsContent value="settings" className="space-y-4">
           <SchedulePanel election={election} reload={load} />
@@ -119,28 +168,60 @@ function ManageElection() {
 function CandidatesPanel({ electionId, candidates, reload }: { electionId: string; candidates: Candidate[]; reload: () => void }) {
   const [name, setName] = useState("");
   const [statement, setStatement] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const uploadPhoto = async (electionId: string, file: File): Promise<string | null> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${electionId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("candidate-photos").upload(path, file, { upsert: false });
+    if (error) { toast.error(error.message); return null; }
+    return supabase.storage.from("candidate-photos").getPublicUrl(path).data.publicUrl;
+  };
+
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    let photo_url: string | null = null;
+    if (photoFile) photo_url = await uploadPhoto(electionId, photoFile);
     const { error } = await supabase.from("candidates").insert({
-      election_id: electionId, name, statement, display_order: candidates.length,
+      election_id: electionId, name, statement, display_order: candidates.length, photo_url,
     });
+    setSubmitting(false);
     if (error) return toast.error(error.message);
-    setName(""); setStatement(""); reload();
+    setName(""); setStatement(""); setPhotoFile(null); reload();
   };
   const remove = async (id: string) => {
     const { error } = await supabase.from("candidates").delete().eq("id", id);
     if (error) return toast.error(error.message);
     reload();
   };
+  const replacePhoto = async (id: string, file: File) => {
+    const url = await uploadPhoto(electionId, file);
+    if (!url) return;
+    const { error } = await supabase.from("candidates").update({ photo_url: url }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Photo updated");
+    reload();
+  };
+
   return (
     <>
       <Card>
         <CardHeader><CardTitle className="font-serif">Add candidate</CardTitle></CardHeader>
         <CardContent>
-          <form onSubmit={add} className="grid gap-3 md:grid-cols-[1fr_2fr_auto]">
-            <Input placeholder="Name" required value={name} onChange={(e) => setName(e.target.value)} />
-            <Textarea placeholder="Statement (equal-format)" rows={1} value={statement} onChange={(e) => setStatement(e.target.value)} />
-            <Button type="submit" variant="institutional">Add</Button>
+          <form onSubmit={add} className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-[1fr_2fr]">
+              <Input placeholder="Name" required value={name} onChange={(e) => setName(e.target.value)} />
+              <Textarea placeholder="Statement (equal-format)" rows={1} value={statement} onChange={(e) => setStatement(e.target.value)} />
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-muted">
+                <ImageIcon className="h-4 w-4" /> {photoFile ? photoFile.name : "Add photo (optional)"}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} />
+              </label>
+              <Button type="submit" variant="institutional" disabled={submitting}>{submitting ? "Adding…" : "Add candidate"}</Button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -148,9 +229,20 @@ function CandidatesPanel({ electionId, candidates, reload }: { electionId: strin
         {candidates.map((c) => (
           <Card key={c.id}>
             <CardContent className="flex items-start justify-between gap-3 py-4">
-              <div>
-                <p className="font-medium">{c.name}</p>
-                {c.statement && <p className="mt-1 text-sm text-muted-foreground">{c.statement}</p>}
+              <div className="flex items-start gap-3">
+                {c.photo_url ? (
+                  <img src={c.photo_url} alt="" className="h-14 w-14 rounded-full border border-border object-cover" />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground"><ImageIcon className="h-5 w-5" /></div>
+                )}
+                <div>
+                  <p className="font-medium">{c.name}</p>
+                  {c.statement && <p className="mt-1 text-sm text-muted-foreground">{c.statement}</p>}
+                  <label className="mt-2 inline-flex cursor-pointer items-center gap-1 text-xs text-gold hover:underline">
+                    <Upload className="h-3 w-3" /> {c.photo_url ? "Replace photo" : "Add photo"}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && replacePhoto(c.id, e.target.files[0])} />
+                  </label>
+                </div>
               </div>
               <Button size="icon" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
             </CardContent>
@@ -162,10 +254,28 @@ function CandidatesPanel({ electionId, candidates, reload }: { electionId: strin
   );
 }
 
-function RollPanel({ electionId, roll, reload }: { electionId: string; roll: RollEntry[]; reload: () => void }) {
+function RollPanel({ electionId, orgId, roll, reload }: { electionId: string; orgId: string | null; roll: RollEntry[]; reload: () => void }) {
   const [emails, setEmails] = useState("");
-  const [tag, setTag] = useState("");
+  const [tag, setTag] = useState("__all__");
+  const [tags, setTags] = useState<string[]>([]);
+  const [dirCount, setDirCount] = useState(0);
   const [enrolling, setEnrolling] = useState(false);
+
+  useEffect(() => {
+    if (!orgId) return;
+    (async () => {
+      const { data, count } = await supabase
+        .from("org_members_directory")
+        .select("tags", { count: "exact" })
+        .eq("organization_id", orgId)
+        .eq("status", "active");
+      setDirCount(count ?? 0);
+      const all = new Set<string>();
+      (data ?? []).forEach((r: any) => (r.tags ?? []).forEach((t: string) => all.add(t)));
+      setTags(Array.from(all).sort());
+    })();
+  }, [orgId, roll.length]);
+
   const enroll = async (e: React.FormEvent) => {
     e.preventDefault();
     const list = emails.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
@@ -175,40 +285,64 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
     if (error) return toast.error(error.message);
     setEmails(""); toast.success(`${rows.length} voters enrolled`); reload();
   };
+
   const enrollByTag = async () => {
+    if (!orgId) return toast.error("This election isn't linked to an organization.");
+    if (dirCount === 0) return toast.error("Your organization directory is empty. Import members first from the Org page.");
     setEnrolling(true);
-    const { data, error } = await supabase.rpc("enroll_voters_by_tag", { _election_id: electionId, _tag: tag.trim() });
+    const _tag = tag === "__all__" ? "" : tag;
+    const { data, error } = await supabase.rpc("enroll_voters_by_tag", { _election_id: electionId, _tag });
     setEnrolling(false);
     if (error) return toast.error(error.message);
     toast.success(`${data ?? 0} voters enrolled from directory`);
-    setTag(""); reload();
+    reload();
   };
+
   const remove = async (id: string) => {
     const { error } = await supabase.from("voter_roll").delete().eq("id", id);
     if (error) return toast.error(error.message);
     reload();
   };
+
   return (
     <>
+      {orgId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif">Enroll from organization directory</CardTitle>
+            <p className="text-xs text-muted-foreground">{dirCount} active members in this tenant. Pick a tag or enroll everyone.</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Select value={tag} onValueChange={setTag}>
+                <SelectTrigger className="sm:w-72"><SelectValue placeholder="All active members" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All active members</SelectItem>
+                  {tags.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button onClick={enrollByTag} disabled={enrolling} variant="institutional">{enrolling ? "Enrolling…" : "Enroll from directory"}</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
-        <CardHeader><CardTitle className="font-serif">Enroll from organization directory</CardTitle><p className="text-xs text-muted-foreground">Pull active members from your tenant's directory. Leave the tag empty to enroll everyone.</p></CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input placeholder="tag (optional, e.g. shareholders-2026)" value={tag} onChange={(e) => setTag(e.target.value)} />
-            <Button onClick={enrollByTag} disabled={enrolling} variant="institutional">{enrolling ? "Enrolling…" : "Enroll from directory"}</Button>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle className="font-serif">Enroll voters manually</CardTitle></CardHeader>
-        <CardContent>
+        <CardHeader>
+          <CardTitle className="font-serif">Enroll voters manually</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <form onSubmit={enroll} className="space-y-3">
             <Label>Emails (comma, space, or newline separated)</Label>
             <Textarea rows={4} value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="alice@org.com, bob@org.com" />
-            <Button type="submit" variant="institutional">Enroll & generate tokens</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" variant="institutional">Enroll & generate tokens</Button>
+              <VoterRollImportWizard electionId={electionId} onDone={reload} />
+            </div>
           </form>
         </CardContent>
       </Card>
+
       <Card>
         <CardContent className="p-0">
           <table className="w-full text-sm">
@@ -224,10 +358,7 @@ function RollPanel({ electionId, roll, reload }: { electionId: string; roll: Rol
                       <button
                         type="button"
                         className="inline-flex items-center gap-1 hover:text-foreground"
-                        onClick={() => {
-                          navigator.clipboard.writeText(r.voting_token!);
-                          toast.success("Token copied");
-                        }}
+                        onClick={() => { navigator.clipboard.writeText(r.voting_token!); toast.success("Token copied"); }}
                       >
                         {r.voting_token} <Copy className="h-3 w-3" />
                       </button>
