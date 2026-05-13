@@ -20,6 +20,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VoteElectionIdRouteImport } from './routes/vote.$electionId'
 import { Route as OSlugRouteImport } from './routes/o.$slug'
+import { Route as AuthenticatedMyRouteImport } from './routes/_authenticated/my'
 import { Route as AuthenticatedAppOrganizationsRouteImport } from './routes/_authenticated/app.organizations'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppOrganizationsOrgIdRouteImport } from './routes/_authenticated/app.organizations.$orgId'
@@ -81,6 +82,11 @@ const OSlugRoute = OSlugRouteImport.update({
   path: '/o/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMyRoute = AuthenticatedMyRouteImport.update({
+  id: '/my',
+  path: '/my',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAppOrganizationsRoute =
   AuthenticatedAppOrganizationsRouteImport.update({
     id: '/app/organizations',
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/_authenticated/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/my'
     | '/o/$slug'
     | '/vote/$electionId'
     | '/app/dashboard'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/my'
     | '/o/$slug'
     | '/vote/$electionId'
     | '/app/dashboard'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/_authenticated/my'
     | '/o/$slug'
     | '/vote/$electionId'
     | '/_authenticated/app/dashboard'
@@ -326,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/my': {
+      id: '/_authenticated/my'
+      path: '/my'
+      fullPath: '/my'
+      preLoaderRoute: typeof AuthenticatedMyRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/organizations': {
       id: '/_authenticated/app/organizations'
       path: '/app/organizations'
@@ -402,12 +421,14 @@ const AuthenticatedAppElectionsElectionIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedMyRoute: typeof AuthenticatedMyRoute
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppOrganizationsRoute: typeof AuthenticatedAppOrganizationsRouteWithChildren
   AuthenticatedAppElectionsElectionIdRoute: typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedMyRoute: AuthenticatedMyRoute,
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppOrganizationsRoute:
     AuthenticatedAppOrganizationsRouteWithChildren,
@@ -436,3 +457,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
