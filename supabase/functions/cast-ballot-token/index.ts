@@ -1,4 +1,5 @@
 // Edge function: cast a ballot via single-use voting token (no auth required)
+// Always returns HTTP 200 with { ok, error? } envelope.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -13,7 +14,7 @@ Deno.serve(async (req) => {
   try {
     const { token, election_id, selections } = await req.json();
     if (!token || !election_id || selections === undefined) {
-      return json({ error: "Missing fields" }, 400);
+      return json({ ok: false, error: "Missing fields" });
     }
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -22,31 +23,31 @@ Deno.serve(async (req) => {
     const { data: roll } = await admin
       .from("voter_roll")
       .select("id, has_voted, election_id")
-      .eq("voting_token", String(token).trim())
+      .ilike("voting_token", String(token).trim())
       .eq("election_id", election_id)
       .maybeSingle();
-    if (!roll) return json({ error: "Invalid token" }, 401);
-    if (roll.has_voted) return json({ error: "Already voted" }, 409);
+    if (!roll) return json({ ok: false, error: "Invalid token" });
+    if (roll.has_voted) return json({ ok: false, error: "This token has already been used" });
 
     const { data: el } = await admin.from("elections").select("status").eq("id", election_id).single();
-    if (el?.status !== "open") return json({ error: "Election not open" }, 400);
+    if (el?.status !== "open") return json({ ok: false, error: "Election is not open" });
 
     const { error: insErr } = await admin.from("ballots").insert({
       election_id, voter_roll_id: roll.id, selections,
     });
-    if (insErr) return json({ error: insErr.message }, 500);
+    if (insErr) return json({ ok: false, error: insErr.message });
 
     await admin.from("voter_roll").update({ has_voted: true }).eq("id", roll.id);
     await admin.from("audit_log").insert({ election_id, event: "ballot_cast_token" });
 
     return json({ ok: true });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    return json({ ok: false, error: (e as Error).message });
   }
 });
 
-function json(body: unknown, status = 200) {
+function json(body: unknown) {
   return new Response(JSON.stringify(body), {
-    status, headers: { ...cors, "Content-Type": "application/json" },
+    status: 200, headers: { ...cors, "Content-Type": "application/json" },
   });
 }

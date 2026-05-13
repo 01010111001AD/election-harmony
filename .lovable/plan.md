@@ -1,82 +1,95 @@
-
 ## Goals
 
-1. Fix the **"Enable Election Admin"** failure on the dashboard.
-2. Make the **public branded org portal** (`/o/$slug`) reliable and discoverable.
-3. Make the **full election workflow** runnable end-to-end inside an organization (create → candidates → voters → open → vote → close → results) without leaving the cockpit.
+Make the platform fully usable end-to-end for voters and admins: fix token login, add a voter dashboard with live results, allow election deletion, attach candidate photos, pull org branding into the election manage screen, fix "Enroll from directory", and add Excel import directly into the voter roll.
 
 ---
 
-## 1. Fix "Enable Election Admin"
+## 1. Fix voting-token login
 
-**Root cause:** `user_roles` only has the policy `platform admins manage roles` for INSERT. A regular signed-in user inserting `(user_id, 'election_admin')` violates RLS — the toast shows the Postgres error and nothing happens.
+**Symptom:** "Invalid voting token" even with a real token.
 
-**Fix:** add a `SECURITY DEFINER` RPC `claim_election_admin()` that inserts the role for `auth.uid()` (idempotent). Call it from the dashboard button instead of a raw insert. No new RLS policy on `user_roles` — keeps privilege escalation surface minimal (self-grant only of `election_admin`, never `platform_admin`).
+**Root causes & fixes:**
+- `verify-voting-token` is wired but the dashboard token generator (`XXXX-XXXX-XXXX`, uppercase) and the directory-enrollment generator (`encode(gen_random_bytes(16), 'hex')`, lowercase) produce different shapes. Make verification case-insensitive: in the edge function compare `lower(voting_token) = lower($1)` via `.ilike()` after stripping whitespace, so users can paste either format and casing.
+- Surface the real error: `verify-voting-token` and `cast-ballot-token` return non-2xx codes (404/401), but `supabase.functions.invoke` swallows the JSON body when status ≥ 400. Update both edge functions to **always return HTTP 200** with `{ ok: false, error }` so the client can read the message; update `login.tsx` and `o.$slug.tsx` to read `data.error` directly.
+- Redeploy `verify-voting-token` and `cast-ballot-token`.
 
-```sql
-create or replace function public.claim_election_admin()
-returns void language plpgsql security definer set search_path=public as $$
-begin
-  if auth.uid() is null then raise exception 'Not authenticated'; end if;
-  insert into public.user_roles(user_id, role)
-  values (auth.uid(), 'election_admin')
-  on conflict do nothing;
-end $$;
-```
+## 2. Voter dashboard (`/my`)
 
-Dashboard button calls `supabase.rpc('claim_election_admin')`.
+New authenticated route `/_authenticated/my.tsx`:
+- Lists every election the signed-in user is enrolled in (`voter_roll.user_id = auth.uid()`).
+- Each card shows: org logo + brand color, election title, status badge, "Cast ballot" CTA when `open` and `!has_voted`, "View results" when `closed`/`certified`, "Receipt recorded" when already voted.
+- Pulls org branding for each card so voters see the tenant identity.
+- Add a sidebar/header link "My ballots" to the existing `_authenticated` layout for signed-in voters.
 
----
+## 3. Live results visible to voters
 
-## 2. Public branded org portal `/o/$slug`
+Refactor results into a shared component `src/components/election/LiveResults.tsx`:
+- Reads candidates + ballots, builds tally (existing logic from `app.elections.$electionId.results.tsx`).
+- Subscribes via Supabase Realtime (`postgres_changes` on `ballots` filtered by `election_id`) to recount on every new ballot.
+- Used by the admin results page AND a new public voter results page `/results/$electionId.tsx`.
+- Migration: `ALTER PUBLICATION supabase_realtime ADD TABLE public.ballots;` and add an RLS policy `ballots readable when election certified` (anon + authenticated, `USING (status IN ('open','closed','certified') AND anonymous = true)`-compatible aggregate read) — actually simpler: keep ballots private, but add a `SECURITY DEFINER` function `public.tally_election(_id uuid)` returning per-candidate counts, callable by anyone for `open|closed|certified` elections. Voter dashboard + org portal call this RPC, no row-level ballot leakage.
+- `o.$slug.tsx` and the voter dashboard show inline mini-results bars for any election in `open|closed|certified`.
 
-The route already exists. Improvements:
+## 4. Delete elections
 
-- Add proper SEO `head()` (title = org name, description = tagline, og:image = logo).
-- Show **org-branded election cards** with method badge + live "open/closed" status.
-- Add a **"Verify your ballot"** field (token entry → links to `/vote/$electionId?token=...`).
-- Link surfaced from the org cockpit (`View public portal` button — already present).
-- Confirm `organizations` SELECT policy `branding readable to all` allows anon read of name/logo/colors (it does).
-- Confirm `elections` has `open elections public read` policy (it does).
-- For closed elections, only show title + closed date (no PII).
+- Add a "Delete election" destructive button in the manage-election header (next to status actions), gated to `owner_id = auth.uid()`. Uses `AlertDialog` confirmation. Cascade delete is already covered by RLS + manual deletes of children (candidates, voter_roll, ballots, audit_log). Migration: add `ON DELETE CASCADE`-style cleanup via a `SECURITY DEFINER` RPC `delete_election(_id uuid)` so a single click cleans up children safely.
+- Also add a Trash icon on each row in the org `Elections` tab and on the dashboard's `ElectionCard`.
 
----
+## 5. Org branding inherited by elections
 
-## 3. Complete in-tenant election workflow
+Already wired (election → organization_id → branding). Two visible polish steps:
+- On the **manage election** page header, when `organization_id` is set, render the org logo + brand-color gradient strip so admins see the same identity voters will see.
+- On the new **CreateElection** flow inside the org cockpit, prefill a banner preview using org colors so admins know voters will see branded ballots.
 
-Today, creating an election forces the user back to the global Dashboard. Make the org cockpit self-sufficient:
+## 6. Candidate photo upload
 
-**a. Create election from inside the org**
-- Add a `+ New election` button on the **Elections tab** of `app.organizations.$orgId.tsx` that opens the same `CreateElectionDialog` but pre-pinned to this org (no org dropdown). Reuses existing logic.
+Migration: create public storage bucket `candidate-photos` with RLS allowing election owners to upload to `<election_id>/...` and public read.
 
-**b. Voter enrollment from member directory**
-- On the election Manage page (`app.elections.$electionId.tsx`) add an **"Enroll from directory"** action: tag-picker that calls the existing `enroll_voters_by_tag(_election_id, _tag)` RPC. Result toast: "N voters enrolled."
-- Keep manual email paste as fallback.
+In `CandidatesPanel`:
+- Add file input next to name/statement; on add, upload to `candidate-photos/{electionId}/{uuid}.{ext}` and set `photo_url` on insert.
+- Render thumbnail in the candidate list and a separate "Replace photo" control per candidate.
 
-**c. Workflow guardrails**
-- Disable "Open voting" if there are 0 candidates or 0 voters in the roll → friendly toast explaining why.
-- Show a tiny inline checklist at top: ✅ Candidates · ✅ Voters · ✅ Schedule · then "Open voting" becomes prominent.
+In voter ballot (`vote.$electionId.tsx`) and live-results component:
+- Render the photo as a 56×56 rounded avatar next to each candidate name.
 
-**d. Results & certify**
-- Already wired (`/app/elections/$electionId/results`). Add a "Copy public portal link" button on the manage page so admins can share the org portal with voters.
+## 7. Fix "Enroll from directory"
 
-**e. Voting flow**
-- Public portal "Cast your ballot" already routes to `/vote/$electionId`. Confirm token flow works for enrolled-by-email voters: token shown in roll table is the one they paste at `/login` voting-token tab.
+The RPC `enroll_voters_by_tag` exists and works, but two UX bugs make it look broken:
+- When the org directory is empty (no Excel import yet) it returns 0 silently. Add a guard: if directory count is 0, show a toast "Your directory is empty — import members first" with a button linking to the org Members tab.
+- Tag matching uses `_tag = ANY(m.tags)`. If the directory's members don't carry tags but admin types a tag, the RPC returns 0. Update the UI to show available tags as a dropdown of distinct tags from `org_members_directory.tags` instead of a free-text input, plus an "All active members" option.
 
----
+## 8. Excel/CSV import directly into a voter roll
 
-## Files
+Add an **"Import voters from Excel/CSV"** action inside `RollPanel` (election manage page) — reuses the existing `MemberImportWizard` parsing logic in a thinner component `VoterRollImportWizard`:
+- Same upload + column-mapping UI (email required).
+- On commit, inserts directly into `voter_roll` for the current election, generating a token per row (server-side default via the existing pattern), and skips emails already in the roll.
 
-- **Migration**: add `claim_election_admin()` RPC.
-- **Edit** `src/routes/_authenticated/app.dashboard.tsx`: button calls `rpc('claim_election_admin')`.
-- **Edit** `src/routes/_authenticated/app.organizations.$orgId.tsx`: in-tab New Election dialog, "Copy portal link".
-- **Edit** `src/routes/_authenticated/app.elections.$electionId.tsx`: Enroll-by-tag UI, open-voting guardrails.
-- **Edit** `src/routes/o.$slug.tsx`: SEO `head()`, token verification field.
+Connecting to "company API" stays available via the existing API key route `/api/public/orgs/:slug/members` (already shipped) — surface a "Connect via API" tab in the wizard with a copy-pastable cURL example.
 
-No new tables. No dependency changes.
+## 9. Files
 
----
+**Edge functions (redeploy):**
+- `supabase/functions/verify-voting-token/index.ts` — case-insensitive match, always-200 envelope
+- `supabase/functions/cast-ballot-token/index.ts` — always-200 envelope
 
-## Out of scope
+**New files:**
+- `src/routes/_authenticated/my.tsx` — voter dashboard
+- `src/routes/results.$electionId.tsx` — public live results
+- `src/components/election/LiveResults.tsx` — realtime tally component
+- `src/components/election/VoterRollImportWizard.tsx` — Excel/CSV → voter_roll
+- `src/components/election/CandidatePhotoUpload.tsx` — small helper
 
-Email delivery (Resend), HMAC verification on the public ingest endpoint, billing — not needed to unblock the user's flow.
+**Edited:**
+- `src/routes/_authenticated/app.elections.$electionId.tsx` — delete button, photo upload in CandidatesPanel, directory tag dropdown, voter Excel import, org branding strip
+- `src/routes/_authenticated/app.elections.$electionId.results.tsx` — switch to `LiveResults`
+- `src/routes/_authenticated/app.dashboard.tsx` + `app.organizations.$orgId.tsx` — delete button on cards
+- `src/routes/o.$slug.tsx` + `src/routes/vote.$electionId.tsx` — show live results inline; render candidate photos
+- `src/routes/login.tsx`, `src/routes/o.$slug.tsx` — read `data.error` from always-200 envelope
+
+**Migrations:**
+- Create `candidate-photos` bucket + RLS policies
+- Add `delete_election(uuid)` RPC (SECURITY DEFINER, owner-only)
+- Add `tally_election(uuid)` RPC (SECURITY DEFINER, public read for open/closed/certified)
+- Realtime: `alter publication supabase_realtime add table public.ballots` (for admin live view; voter side uses the RPC)
+
+No new dependencies (xlsx already installed).

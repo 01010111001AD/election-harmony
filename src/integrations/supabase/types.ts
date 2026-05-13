@@ -456,6 +456,7 @@ export type Database = {
     }
     Functions: {
       claim_election_admin: { Args: never; Returns: undefined }
+      delete_election: { Args: { _id: string }; Returns: undefined }
       enroll_voters_by_tag: {
         Args: { _election_id: string; _tag: string }
         Returns: number
@@ -482,6 +483,15 @@ export type Database = {
       owns_election: {
         Args: { _election_id: string; _user_id: string }
         Returns: boolean
+      }
+      tally_election: {
+        Args: { _id: string }
+        Returns: {
+          candidate_id: string
+          name: string
+          photo_url: string
+          votes: number
+        }[]
       }
     }
     Enums: {

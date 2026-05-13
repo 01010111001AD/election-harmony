@@ -19,7 +19,9 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VoteElectionIdRouteImport } from './routes/vote.$electionId'
+import { Route as ResultsElectionIdRouteImport } from './routes/results.$electionId'
 import { Route as OSlugRouteImport } from './routes/o.$slug'
+import { Route as AuthenticatedMyRouteImport } from './routes/_authenticated/my'
 import { Route as AuthenticatedAppOrganizationsRouteImport } from './routes/_authenticated/app.organizations'
 import { Route as AuthenticatedAppDashboardRouteImport } from './routes/_authenticated/app.dashboard'
 import { Route as AuthenticatedAppOrganizationsOrgIdRouteImport } from './routes/_authenticated/app.organizations.$orgId'
@@ -76,10 +78,20 @@ const VoteElectionIdRoute = VoteElectionIdRouteImport.update({
   path: '/vote/$electionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResultsElectionIdRoute = ResultsElectionIdRouteImport.update({
+  id: '/results/$electionId',
+  path: '/results/$electionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OSlugRoute = OSlugRouteImport.update({
   id: '/o/$slug',
   path: '/o/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedMyRoute = AuthenticatedMyRouteImport.update({
+  id: '/my',
+  path: '/my',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAppOrganizationsRoute =
   AuthenticatedAppOrganizationsRouteImport.update({
@@ -127,7 +139,9 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
+  '/results/$electionId': typeof ResultsElectionIdRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
@@ -145,7 +159,9 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
+  '/results/$electionId': typeof ResultsElectionIdRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
@@ -165,7 +181,9 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/use-cases': typeof UseCasesRoute
+  '/_authenticated/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
+  '/results/$electionId': typeof ResultsElectionIdRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
@@ -185,7 +203,9 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/my'
     | '/o/$slug'
+    | '/results/$electionId'
     | '/vote/$electionId'
     | '/app/dashboard'
     | '/app/organizations'
@@ -203,7 +223,9 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/my'
     | '/o/$slug'
+    | '/results/$electionId'
     | '/vote/$electionId'
     | '/app/dashboard'
     | '/app/organizations'
@@ -222,7 +244,9 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/use-cases'
+    | '/_authenticated/my'
     | '/o/$slug'
+    | '/results/$electionId'
     | '/vote/$electionId'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/organizations'
@@ -243,6 +267,7 @@ export interface RootRouteChildren {
   SecurityRoute: typeof SecurityRoute
   UseCasesRoute: typeof UseCasesRoute
   OSlugRoute: typeof OSlugRoute
+  ResultsElectionIdRoute: typeof ResultsElectionIdRoute
   VoteElectionIdRoute: typeof VoteElectionIdRoute
   ApiPublicOrgsSlugMembersRoute: typeof ApiPublicOrgsSlugMembersRoute
 }
@@ -319,12 +344,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VoteElectionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/results/$electionId': {
+      id: '/results/$electionId'
+      path: '/results/$electionId'
+      fullPath: '/results/$electionId'
+      preLoaderRoute: typeof ResultsElectionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/o/$slug': {
       id: '/o/$slug'
       path: '/o/$slug'
       fullPath: '/o/$slug'
       preLoaderRoute: typeof OSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/my': {
+      id: '/_authenticated/my'
+      path: '/my'
+      fullPath: '/my'
+      preLoaderRoute: typeof AuthenticatedMyRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/app/organizations': {
       id: '/_authenticated/app/organizations'
@@ -402,12 +441,14 @@ const AuthenticatedAppElectionsElectionIdRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedMyRoute: typeof AuthenticatedMyRoute
   AuthenticatedAppDashboardRoute: typeof AuthenticatedAppDashboardRoute
   AuthenticatedAppOrganizationsRoute: typeof AuthenticatedAppOrganizationsRouteWithChildren
   AuthenticatedAppElectionsElectionIdRoute: typeof AuthenticatedAppElectionsElectionIdRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedMyRoute: AuthenticatedMyRoute,
   AuthenticatedAppDashboardRoute: AuthenticatedAppDashboardRoute,
   AuthenticatedAppOrganizationsRoute:
     AuthenticatedAppOrganizationsRouteWithChildren,
@@ -430,19 +471,10 @@ const rootRouteChildren: RootRouteChildren = {
   SecurityRoute: SecurityRoute,
   UseCasesRoute: UseCasesRoute,
   OSlugRoute: OSlugRoute,
+  ResultsElectionIdRoute: ResultsElectionIdRoute,
   VoteElectionIdRoute: VoteElectionIdRoute,
   ApiPublicOrgsSlugMembersRoute: ApiPublicOrgsSlugMembersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

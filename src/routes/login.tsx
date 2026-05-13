@@ -61,7 +61,8 @@ function LoginPage() {
       body: { token: token.trim() },
     });
     setLoading(false);
-    if (error || !data?.ok) return toast.error((data as any)?.error || "Invalid voting token");
+    if (error) return toast.error(error.message || "Network error");
+    if (!data?.ok) return toast.error(data?.error || "Invalid voting token");
     if (data.has_voted) return toast.error("This token has already been used.");
     sessionStorage.setItem("electa.token", token.trim());
     sessionStorage.setItem("electa.tokenRoll", JSON.stringify({ election_id: data.election_id, has_voted: false }));
