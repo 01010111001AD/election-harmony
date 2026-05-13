@@ -19,6 +19,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VoteElectionIdRouteImport } from './routes/vote.$electionId'
+import { Route as ResultsElectionIdRouteImport } from './routes/results.$electionId'
 import { Route as OSlugRouteImport } from './routes/o.$slug'
 import { Route as AuthenticatedMyRouteImport } from './routes/_authenticated/my'
 import { Route as AuthenticatedAppOrganizationsRouteImport } from './routes/_authenticated/app.organizations'
@@ -75,6 +76,11 @@ const IndexRoute = IndexRouteImport.update({
 const VoteElectionIdRoute = VoteElectionIdRouteImport.update({
   id: '/vote/$electionId',
   path: '/vote/$electionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultsElectionIdRoute = ResultsElectionIdRouteImport.update({
+  id: '/results/$electionId',
+  path: '/results/$electionId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OSlugRoute = OSlugRouteImport.update({
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/use-cases': typeof UseCasesRoute
   '/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
+  '/results/$electionId': typeof ResultsElectionIdRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/use-cases': typeof UseCasesRoute
   '/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
+  '/results/$electionId': typeof ResultsElectionIdRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/use-cases': typeof UseCasesRoute
   '/_authenticated/my': typeof AuthenticatedMyRoute
   '/o/$slug': typeof OSlugRoute
+  '/results/$electionId': typeof ResultsElectionIdRoute
   '/vote/$electionId': typeof VoteElectionIdRoute
   '/_authenticated/app/dashboard': typeof AuthenticatedAppDashboardRoute
   '/_authenticated/app/organizations': typeof AuthenticatedAppOrganizationsRouteWithChildren
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/use-cases'
     | '/my'
     | '/o/$slug'
+    | '/results/$electionId'
     | '/vote/$electionId'
     | '/app/dashboard'
     | '/app/organizations'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/use-cases'
     | '/my'
     | '/o/$slug'
+    | '/results/$electionId'
     | '/vote/$electionId'
     | '/app/dashboard'
     | '/app/organizations'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/use-cases'
     | '/_authenticated/my'
     | '/o/$slug'
+    | '/results/$electionId'
     | '/vote/$electionId'
     | '/_authenticated/app/dashboard'
     | '/_authenticated/app/organizations'
@@ -255,6 +267,7 @@ export interface RootRouteChildren {
   SecurityRoute: typeof SecurityRoute
   UseCasesRoute: typeof UseCasesRoute
   OSlugRoute: typeof OSlugRoute
+  ResultsElectionIdRoute: typeof ResultsElectionIdRoute
   VoteElectionIdRoute: typeof VoteElectionIdRoute
   ApiPublicOrgsSlugMembersRoute: typeof ApiPublicOrgsSlugMembersRoute
 }
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/vote/$electionId'
       fullPath: '/vote/$electionId'
       preLoaderRoute: typeof VoteElectionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/results/$electionId': {
+      id: '/results/$electionId'
+      path: '/results/$electionId'
+      fullPath: '/results/$electionId'
+      preLoaderRoute: typeof ResultsElectionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/o/$slug': {
@@ -451,6 +471,7 @@ const rootRouteChildren: RootRouteChildren = {
   SecurityRoute: SecurityRoute,
   UseCasesRoute: UseCasesRoute,
   OSlugRoute: OSlugRoute,
+  ResultsElectionIdRoute: ResultsElectionIdRoute,
   VoteElectionIdRoute: VoteElectionIdRoute,
   ApiPublicOrgsSlugMembersRoute: ApiPublicOrgsSlugMembersRoute,
 }
