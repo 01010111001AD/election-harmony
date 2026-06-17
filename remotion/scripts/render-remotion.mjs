@@ -16,11 +16,14 @@ const browser = await openBrowser("chrome", {
   chromeMode: "chrome-for-testing",
 });
 
-const composition = await selectComposition({ serveUrl: bundled, id: "main", puppeteerInstance: browser });
+const publicDir = path.resolve(__dirname, "../public");
+
+const composition = await selectComposition({ serveUrl: bundled, id: "main", puppeteerInstance: browser, publicDir });
 
 await renderMedia({
   composition,
   serveUrl: bundled,
+  publicDir,
   codec: "h264",
   audioCodec: "mp3",
   outputLocation: process.env.OUT ?? "/mnt/documents/electacore-demo.mp4",
