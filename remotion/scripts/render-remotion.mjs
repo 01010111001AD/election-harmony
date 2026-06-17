@@ -22,7 +22,7 @@ await renderMedia({
   composition,
   serveUrl: bundled,
   codec: "h264",
-  audioCodec: "aac",
+  audioCodec: "mp3",
   outputLocation: process.env.OUT ?? "/mnt/documents/electacore-demo.mp4",
   puppeteerInstance: browser,
   muted: false,
