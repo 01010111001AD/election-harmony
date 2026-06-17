@@ -22,10 +22,17 @@ await renderMedia({
   composition,
   serveUrl: bundled,
   codec: "h264",
+  audioCodec: "aac",
   outputLocation: process.env.OUT ?? "/mnt/documents/electacore-demo.mp4",
   puppeteerInstance: browser,
-  muted: true,
-  concurrency: 1,
+  muted: false,
+  concurrency: Number(process.env.CONC ?? 4),
+  crf: 20,
+  onProgress: ({ progress, renderedFrames, encodedFrames }) => {
+    if (renderedFrames % 30 === 0) {
+      console.log(`progress=${(progress*100).toFixed(1)}% rendered=${renderedFrames} encoded=${encodedFrames}`);
+    }
+  },
 });
 
 await browser.close({ silent: false });
