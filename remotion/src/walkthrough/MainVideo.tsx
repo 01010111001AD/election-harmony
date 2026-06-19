@@ -1,3 +1,4 @@
+import "../fonts";
 import { AbsoluteFill, Audio, Sequence, staticFile } from "remotion";
 import { SCENE_FRAMES, TOTAL_FRAMES } from "./narration";
 import { SceneIntro } from "./scenes/SceneIntro";
