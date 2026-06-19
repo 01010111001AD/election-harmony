@@ -18,8 +18,9 @@ export const RemotionRoot = () => (
       component={WalkthroughVideo}
       durationInFrames={TOTAL_FRAMES}
       fps={FPS}
-      width={1280}
-      height={720}
+      width={1920}
+      height={1080}
+
 
     />
   </>
