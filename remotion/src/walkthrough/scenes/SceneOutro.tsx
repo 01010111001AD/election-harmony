@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
-import { colors, fonts } from "../theme";
+import { colors, fonts } from "../../theme";
 import { PersistentBackground } from "../PersistentBackground";
 
 export const SceneOutro = () => {
