@@ -1,4 +1,6 @@
 // Detailed walkthrough narration script for the ElectaCore product video.
+// Audio duration measured from the generated TTS file: 219.912 seconds.
+// Scene durations are derived from word counts so each visual scene aligns with its narration.
 export const narrationText = `Meet ElectaCore: the secure digital election platform trusted by institutions that take democracy seriously.
 
 An administrator begins by creating a new election — for example, "Board of Directors Election 2026". They choose a voting method: First-Past-the-Post, Approval, Ranked-Choice, or Yes/No. They set the maximum number of selections, add a ballot description, and schedule open and close dates. The ballot automatically inherits the organization's logo, brand colors, and tagline, so every voter feels they are inside their own institution's portal.
@@ -20,18 +22,27 @@ Every ballot cast generates a cryptographic audit entry with an immutable timest
 From setup to certification, ElectaCore transforms election management into a secure, transparent, and scalable process. It replaces paper ballots and basic survey tools with a modern system that protects voter secrecy, gives administrators real-time confidence, and produces immutable, auditable records. ElectaCore — for elections that matter.`;
 
 export const SCENE_TIMINGS = [
-  { id: "intro", label: "Meet ElectaCore", durationInSeconds: 7 },
-  { id: "setup", label: "Setup & Configuration", durationInSeconds: 18 },
-  { id: "candidates", label: "Candidate Onboarding", durationInSeconds: 12 },
-  { id: "voterRoll", label: "Voter Roll Creation", durationInSeconds: 17 },
-  { id: "launch", label: "Launch", durationInSeconds: 9 },
-  { id: "voterExperience", label: "Voter Experience", durationInSeconds: 25 },
-  { id: "monitoring", label: "Monitoring & Live Results", durationInSeconds: 12 },
-  { id: "close", label: "Close & Certify", durationInSeconds: 11 },
-  { id: "audit", label: "Audit & Transparency", durationInSeconds: 9 },
-  { id: "outro", label: "Why ElectaCore", durationInSeconds: 12 },
+  { id: "intro", label: "Meet ElectaCore", wordCount: 14, durationInSeconds: 5.40 },
+  { id: "setup", label: "Setup & Configuration", wordCount: 65, durationInSeconds: 25.08 },
+  { id: "candidates", label: "Candidate Onboarding", wordCount: 36, durationInSeconds: 13.89 },
+  { id: "voterRoll", label: "Voter Roll Creation", wordCount: 85, durationInSeconds: 32.79 },
+  { id: "launch", label: "Launch", wordCount: 38, durationInSeconds: 14.66 },
+  { id: "voterExperience", label: "Voter Experience", wordCount: 136, durationInSeconds: 52.49 },
+  { id: "monitoring", label: "Monitoring & Live Results", wordCount: 59, durationInSeconds: 22.77 },
+  { id: "close", label: "Close & Certify", wordCount: 46, durationInSeconds: 17.75 },
+  { id: "audit", label: "Audit & Transparency", wordCount: 45, durationInSeconds: 17.36 },
+  { id: "outro", label: "Why ElectaCore", wordCount: 46, durationInSeconds: 17.75 },
 ] as const;
 
-export const TOTAL_SECONDS = SCENE_TIMINGS.reduce((acc, s) => acc + s.durationInSeconds, 0);
+export const AUDIO_DURATION_SECONDS = 219.912;
 export const FPS = 30;
-export const TOTAL_FRAMES = TOTAL_SECONDS * FPS;
+
+const secondsToFrames = (s: number) => Math.round(s * FPS);
+
+export const SCENE_FRAMES = SCENE_TIMINGS.map((s) => ({
+  ...s,
+  frames: secondsToFrames(s.durationInSeconds),
+}));
+
+export const TOTAL_FRAMES = SCENE_FRAMES.reduce((acc, s) => acc + s.frames, 0);
+
