@@ -35,7 +35,7 @@ export const SCENE_WORD_COUNTS = [
 ] as const;
 
 export const AUDIO_DURATION_SECONDS = 176.376;
-export const FPS = 30;
+export const FPS = 20;
 
 const totalWords = SCENE_WORD_COUNTS.reduce((acc, s) => acc + s.wordCount, 0);
 const secondsToFrames = (s: number) => Math.round(s * FPS);
