@@ -17,7 +17,8 @@ const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
     input: narrationText,
     voice: "shimmer",
     response_format: "mp3",
-    instructions: "Speak warmly and professionally, like a confident product narrator. Measured pace, clear articulation, subtle authority. Slightly slower than a typical commercial so the viewer can absorb technical details.",
+    speed: 1.3,
+    instructions: "Speak warmly and professionally, like a confident product narrator. Clear articulation, subtle authority, slightly brisk but natural pace.",
   }),
 });
 
