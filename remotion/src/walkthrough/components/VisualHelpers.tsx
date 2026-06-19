@@ -1,5 +1,5 @@
 import { useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
-import { colors, fonts } from "../theme";
+import { colors, fonts } from "../../theme";
 
 export const SectionLabel = ({ step, label }: { step: number; label: string }) => {
   const frame = useCurrentFrame();
