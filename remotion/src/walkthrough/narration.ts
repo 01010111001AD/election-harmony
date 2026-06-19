@@ -21,28 +21,34 @@ Every ballot cast generates a cryptographic audit entry with an immutable timest
 
 From setup to certification, ElectaCore transforms election management into a secure, transparent, and scalable process. It replaces paper ballots and basic survey tools with a modern system that protects voter secrecy, gives administrators real-time confidence, and produces immutable, auditable records. ElectaCore — for elections that matter.`;
 
-export const SCENE_TIMINGS = [
-  { id: "intro", label: "Meet ElectaCore", wordCount: 14, durationInSeconds: 5.40 },
-  { id: "setup", label: "Setup & Configuration", wordCount: 65, durationInSeconds: 25.08 },
-  { id: "candidates", label: "Candidate Onboarding", wordCount: 36, durationInSeconds: 13.89 },
-  { id: "voterRoll", label: "Voter Roll Creation", wordCount: 85, durationInSeconds: 32.79 },
-  { id: "launch", label: "Launch", wordCount: 38, durationInSeconds: 14.66 },
-  { id: "voterExperience", label: "Voter Experience", wordCount: 136, durationInSeconds: 52.49 },
-  { id: "monitoring", label: "Monitoring & Live Results", wordCount: 59, durationInSeconds: 22.77 },
-  { id: "close", label: "Close & Certify", wordCount: 46, durationInSeconds: 17.75 },
-  { id: "audit", label: "Audit & Transparency", wordCount: 45, durationInSeconds: 17.36 },
-  { id: "outro", label: "Why ElectaCore", wordCount: 46, durationInSeconds: 17.75 },
+export const SCENE_WORD_COUNTS = [
+  { id: "intro", label: "Meet ElectaCore", wordCount: 14 },
+  { id: "setup", label: "Setup & Configuration", wordCount: 65 },
+  { id: "candidates", label: "Candidate Onboarding", wordCount: 36 },
+  { id: "voterRoll", label: "Voter Roll Creation", wordCount: 85 },
+  { id: "launch", label: "Launch", wordCount: 38 },
+  { id: "voterExperience", label: "Voter Experience", wordCount: 136 },
+  { id: "monitoring", label: "Monitoring & Live Results", wordCount: 59 },
+  { id: "close", label: "Close & Certify", wordCount: 46 },
+  { id: "audit", label: "Audit & Transparency", wordCount: 45 },
+  { id: "outro", label: "Why ElectaCore", wordCount: 46 },
 ] as const;
 
-export const AUDIO_DURATION_SECONDS = 219.912;
+export const AUDIO_DURATION_SECONDS = 176.376;
 export const FPS = 30;
 
+const totalWords = SCENE_WORD_COUNTS.reduce((acc, s) => acc + s.wordCount, 0);
 const secondsToFrames = (s: number) => Math.round(s * FPS);
 
-export const SCENE_FRAMES = SCENE_TIMINGS.map((s) => ({
-  ...s,
-  frames: secondsToFrames(s.durationInSeconds),
-}));
+export const SCENE_FRAMES = SCENE_WORD_COUNTS.map((s) => {
+  const durationInSeconds = (s.wordCount / totalWords) * AUDIO_DURATION_SECONDS;
+  return {
+    ...s,
+    durationInSeconds,
+    frames: secondsToFrames(durationInSeconds),
+  };
+});
 
 export const TOTAL_FRAMES = SCENE_FRAMES.reduce((acc, s) => acc + s.frames, 0);
+
 
