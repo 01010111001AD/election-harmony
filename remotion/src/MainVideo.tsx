@@ -72,7 +72,7 @@ export const MainVideo = () => {
           <Scene5Results />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: 18 })} />
-        <TransitionSeries.Sequence durationInFrames={158}>
+        <TransitionSeries.Sequence durationInFrames={248}>
           <Scene6Outro />
         </TransitionSeries.Sequence>
       </TransitionSeries>
