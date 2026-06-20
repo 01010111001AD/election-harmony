@@ -34,7 +34,7 @@ export const SCENE_WORD_COUNTS = [
   { id: "outro", label: "Why ElectaCore", wordCount: 46 },
 ] as const;
 
-export const AUDIO_DURATION_SECONDS = 176.376;
+export const AUDIO_DURATION_SECONDS = 227.208;
 export const FPS = 15;
 
 const totalWords = SCENE_WORD_COUNTS.reduce((acc, s) => acc + s.wordCount, 0);

@@ -15,10 +15,10 @@ const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
   body: JSON.stringify({
     model: "openai/gpt-4o-mini-tts",
     input: narrationText,
-    voice: "shimmer",
+    voice: "coral",
     response_format: "mp3",
-    speed: 1.3,
-    instructions: "Speak warmly and professionally, like a confident product narrator. Clear articulation, subtle authority, slightly brisk but natural pace.",
+    speed: 1.0,
+    instructions: "Speak as a real human woman — a warm, conversational product narrator giving a friendly walkthrough. Natural breathing pauses between sentences, gentle intonation, slight smile in the voice. Steady, calm, unhurried pace. Vary pitch and rhythm naturally like spontaneous speech, not a synthesized announcer. Sound relatable and authentic, not robotic or overly polished.",
   }),
 });
 
