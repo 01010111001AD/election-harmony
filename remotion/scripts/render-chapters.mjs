@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Mirror narration timing
 const FPS = 15;
-const AUDIO = 176.376;
+const AUDIO = 227.208;
 const SCENES = [
   { id: "intro", w: 14 },
   { id: "setup", w: 65 },
